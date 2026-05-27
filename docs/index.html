@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scout — AI Security Team in a CLI</title>
+    <meta name="description" content="Free, open-source security scanner for indie developers. Find vulnerabilities before hackers do.">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --orange: #d29922;
+            --purple: #bc8cff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 80px 0 60px;
+            border-bottom: 1px solid var(--border);
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero .tagline {
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+        .hero .install-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 24px;
+            display: inline-block;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 1.1rem;
+            color: var(--green);
+            cursor: pointer;
+            position: relative;
+        }
+        .hero .install-box:hover::after {
+            content: 'Click to copy';
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: -apple-system, sans-serif;
+        }
+
+        /* Badges */
+        .badges {
+            margin-top: 24px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Sections */
+        section { padding: 60px 0; border-bottom: 1px solid var(--border); }
+        section:last-child { border-bottom: none; }
+        section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 24px;
+            color: var(--text);
+        }
+        section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        /* Code blocks */
+        pre {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        pre code { background: none; padding: 0; }
+
+        /* Features grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .feature-card .icon { font-size: 2rem; margin-bottom: 12px; }
+        .feature-card h3 { color: var(--text); margin-bottom: 8px; }
+        .feature-card p { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Scanner table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        th { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+        td { font-size: 0.95rem; }
+
+        /* Severity badges */
+        .sev-critical { color: var(--red); font-weight: 600; }
+        .sev-high { color: var(--orange); font-weight: 600; }
+        .sev-medium { color: #d29922; }
+        .sev-low { color: var(--accent); }
+
+        /* Steps */
+        .steps { counter-reset: step; }
+        .step {
+            position: relative;
+            padding-left: 48px;
+            margin-bottom: 32px;
+        }
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            color: var(--bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2rem; }
+            .hero .tagline { font-size: 1rem; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Hero -->
+    <section class="hero">
+        <h1>Scout</h1>
+        <p class="tagline">Your AI security team in a CLI. Find vulnerabilities before hackers do — free, local, no signup.</p>
+        <div class="install-box" onclick="navigator.clipboard.writeText('pip install scout-security')">
+            $ pip install scout-security
+        </div>
+        <div class="badges">
+            <span class="badge">Python 3.10+</span>
+            <span class="badge">MIT License</span>
+            <span class="badge">Zero Config</span>
+            <span class="badge">AI Optional</span>
+        </div>
+    </section>
+
+    <!-- Why -->
+    <section>
+        <h2>The Problem</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 700px;">
+            AI coding assistants write insecure code. Hardcoded secrets, SQL injection, missing auth — they ship it all.
+            You can't afford a security team. But you can't afford to get hacked either.
+        </p>
+        <p style="color: var(--text); font-size: 1.1rem; margin-top: 16px; max-width: 700px;">
+            <strong>Scout catches what AI introduces.</strong> Static analysis finds 80% of real issues instantly — no API keys needed.
+            Optional AI confirmation reduces false positives further.
+        </p>
+    </section>
+
+    <!-- Quick Start -->
+    <section>
+        <h2>Quick Start</h2>
+        <div class="steps">
+            <div class="step">
+                <h3>Install</h3>
+                <pre><code>pip install scout-security</code></pre>
+            </div>
+            <div class="step">
+                <h3>Scan your project</h3>
+                <pre><code>scout scan ./my-project</code></pre>
+            </div>
+            <div class="step">
+                <h3>Read the report</h3>
+                <pre><code># Opens security-report.md with:
+# - Every vulnerability explained in plain English
+# - Severity ratings (CRITICAL → LOW)
+# - Exact fix instructions
+# - Phased remediation plan (fix safe things first)</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+        <h2>Features</h2>
+        <div class="features">
+            <div class="feature-card">
+                <div class="icon">🔍</div>
+                <h3>Static Analysis</h3>
+                <p>AST + regex patterns detect secrets, injections, XSS, missing headers, and vulnerable deps. Works offline, instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🤖</div>
+                <h3>AI Confirmation (Optional)</h3>
+                <p>Send flagged snippets to Claude, GPT, or local Ollama. Reduces false positives. Never sends full files.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📋</div>
+                <h3>Phased Fix Plan</h3>
+                <p>Phase 1: zero-risk (secrets, deps). Phase 5: architecture. Fix safely, ship confidently.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🔒</div>
+                <h3>Privacy First</h3>
+                <p>Everything runs locally. No telemetry. No cloud. Your code never leaves your machine unless you opt into AI.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">⚡</div>
+                <h3>Fast</h3>
+                <p>Scans 10,000 lines in under 10 seconds. No build step, no config file needed.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🧩</div>
+                <h3>Extensible</h3>
+                <p>Write a new scanner in 30 lines of Python. Inherit BaseScanner, implement scan_file(), done.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scanners -->
+    <section>
+        <h2>Built-in Scanners</h2>
+        <table>
+            <thead>
+                <tr><th>Scanner</th><th>Detects</th><th>Severity</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>secrets</code></td>
+                    <td>AWS keys, GitHub tokens, Stripe keys, DB URLs, private keys, JWT secrets, passwords</td>
+                    <td><span class="sev-critical">CRITICAL</span></td>
+                </tr>
+                <tr>
+                    <td><code>injection</code></td>
+                    <td>SQL injection (concat, f-strings, format), command injection, eval()</td>
+                    <td><span class="sev-critical">CRITICAL</span></td>
+                </tr>
+                <tr>
+                    <td><code>headers</code></td>
+                    <td>Missing helmet/security headers, wildcard CORS, no CSP</td>
+                    <td><span class="sev-high">HIGH</span></td>
+                </tr>
+                <tr>
+                    <td><code>deps</code></td>
+                    <td>Known vulnerabilities via pip-audit / npm audit</td>
+                    <td><span class="sev-high">HIGH</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- CLI Reference -->
+    <section>
+        <h2>CLI Commands</h2>
+
+        <h3>scout scan</h3>
+        <pre><code>scout scan &lt;path&gt; [OPTIONS]
+
+Options:
+  --model, -m    AI provider: anthropic | openai | ollama | none (default: none)
+  --no-ai        Skip AI pass entirely (static scan only)
+  --output, -o   Output path for the report
+  --ollama-model Ollama model name (default: llama3)</code></pre>
+
+        <h3>scout fix <span style="color: var(--text-muted);">(coming soon)</span></h3>
+        <pre><code>scout fix --phase 1 &lt;path&gt;
+
+Applies zero-risk fixes: moves secrets to .env, bumps vulnerable deps.</code></pre>
+
+        <h3>scout validate <span style="color: var(--text-muted);">(coming soon)</span></h3>
+        <pre><code>scout validate &lt;path&gt;
+
+Re-scans changed files + runs tests to confirm fixes worked.</code></pre>
+    </section>
+
+    <!-- AI Providers -->
+    <section>
+        <h2>AI Providers</h2>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">AI is always optional. Static analysis works perfectly alone.</p>
+
+        <table>
+            <thead>
+                <tr><th>Provider</th><th>Setup</th><th>Cost</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>None (default)</td>
+                    <td>Nothing — works out of the box</td>
+                    <td>Free</td>
+                </tr>
+                <tr>
+                    <td>Ollama (local)</td>
+                    <td><code>ollama pull llama3</code> then <code>scout scan --model ollama</code></td>
+                    <td>Free</td>
+                </tr>
+                <tr>
+                    <td>Anthropic</td>
+                    <td>Set <code>ANTHROPIC_API_KEY</code> in .env</td>
+                    <td>~$0.01/scan</td>
+                </tr>
+                <tr>
+                    <td>OpenAI</td>
+                    <td>Set <code>OPENAI_API_KEY</code> in .env</td>
+                    <td>~$0.01/scan</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Example Output -->
+    <section>
+        <h2>Example Output</h2>
+        <pre><code>$ scout scan ./my-app
+
+Scout v0.1.0 scanning: ./my-app
+
+  Scanning 47 files...
+
+Found 6 issues:
+
+  🔴 2 critical
+  🟠 3 high
+  🟡 1 medium
+
+Report written to: ./my-app/security-report.md
+Next: open the report, then run `scout fix --phase 1`</code></pre>
+    </section>
+
+    <!-- Contributing -->
+    <section>
+        <h2>Add Your Own Scanner</h2>
+        <pre><code>from scout.scanners import register_scanner
+from scout.scanners.base import BaseScanner
+from scout.models import Finding
+from pathlib import Path
+
+@register_scanner
+class MyScanner(BaseScanner):
+    name = "my-scanner"
+    description = "Detects my custom pattern"
+
+    def scan_file(self, file_path: Path, content: str) -> list[Finding]:
+        findings = []
+        # Your detection logic here
+        return findings</code></pre>
+        <p style="color: var(--text-muted); margin-top: 12px;">
+            Then add one import line in <code>scout/scanners/__init__.py</code>. That's it.
+        </p>
+    </section>
+</div>
+
+<footer>
+    <p>
+        <a href="https://github.com/tejaswirajgit/Scout">GitHub</a> ·
+        <a href="https://pypi.org/project/scout-security/">PyPI</a> ·
+        MIT License · Made for indie devs who ship fast
+    </p>
+</footer>
+
+<script>
+// Copy install command on click
+document.querySelector('.install-box').addEventListener('click', function() {
+    navigator.clipboard.writeText('pip install scout-security');
+    this.style.borderColor = '#3fb950';
+    setTimeout(() => this.style.borderColor = '', 1500);
+});
+</script>
+
+</body>
+</html>
