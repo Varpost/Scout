@@ -1,0 +1,1 @@
+"""Scout AI client package."""
