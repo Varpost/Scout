@@ -77,7 +77,9 @@ jobs:
         run: pip install -e ".[dev]" pip-audit
 
       - name: pip-audit (dependency vulnerabilities)
-        run: pip-audit --strict --desc
+        # Audit only third-party deps from pyproject. Scout itself is not on
+        # PyPI yet, so we skip it via --skip-editable.
+        run: pip-audit --strict --desc --skip-editable
 
       - name: Ruff security rules
         run: ruff check scout/ --select S
