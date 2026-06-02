@@ -77,9 +77,12 @@ jobs:
         run: pip install -e ".[dev]" pip-audit
 
       - name: pip-audit (dependency vulnerabilities)
-        # Audit only third-party deps from pyproject. Scout itself is not on
-        # PyPI yet, so we skip it via --skip-editable.
-        run: pip-audit --strict --desc --skip-editable
+        # Audit only the declared third-party deps. Scout itself is not on
+        # PyPI yet, so we extract the dependency list from pyproject.toml
+        # and audit that instead of the editable install.
+        run: |
+          python -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); print('\n'.join(d['project']['dependencies']))" > _audit_reqs.txt
+          pip-audit --strict --desc --requirement _audit_reqs.txt
 
       - name: Ruff security rules
         run: ruff check scout/ --select S
