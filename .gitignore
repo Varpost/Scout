@@ -34,6 +34,8 @@ Thumbs.db
 security-report.md
 security-report.html
 *.patch
+PITCH.md
+ai_security_team_architecture.svg
 
 .github/agents/
 .github/copilot-instructions.md
