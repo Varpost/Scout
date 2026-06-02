@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scout — AI Security Team in a CLI</title>
     <meta name="description" content="Free, open-source security scanner for indie developers. Find vulnerabilities before hackers do.">
+    <link rel="stylesheet" href="styles.css">
     <style>
         :root {
             --bg: #0d1117;
@@ -224,11 +225,11 @@
     <!-- Why -->
     <section>
         <h2>The Problem</h2>
-        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 700px;">
+        <p class="text-muted-large">
             AI coding assistants write insecure code. Hardcoded secrets, SQL injection, missing auth — they ship it all.
             You can't afford a security team. But you can't afford to get hacked either.
         </p>
-        <p style="color: var(--text); font-size: 1.1rem; margin-top: 16px; max-width: 700px;">
+        <p class="text-large">
             <strong>Scout catches what AI introduces.</strong> Static analysis finds 80% of real issues instantly — no API keys needed.
             Optional AI confirmation reduces false positives further.
         </p>
@@ -339,12 +340,12 @@ Options:
   --output, -o   Output path for the report
   --ollama-model Ollama model name (default: llama3)</code></pre>
 
-        <h3>scout fix <span style="color: var(--text-muted);">(coming soon)</span></h3>
+        <h3>scout fix <span class="badge-coming-soon">(coming soon)</span></h3>
         <pre><code>scout fix --phase 1 &lt;path&gt;
 
 Applies zero-risk fixes: moves secrets to .env, bumps vulnerable deps.</code></pre>
 
-        <h3>scout validate <span style="color: var(--text-muted);">(coming soon)</span></h3>
+        <h3>scout validate <span class="badge-coming-soon">(coming soon)</span></h3>
         <pre><code>scout validate &lt;path&gt;
 
 Re-scans changed files + runs tests to confirm fixes worked.</code></pre>
@@ -353,7 +354,7 @@ Re-scans changed files + runs tests to confirm fixes worked.</code></pre>
     <!-- AI Providers -->
     <section>
         <h2>AI Providers</h2>
-        <p style="color: var(--text-muted); margin-bottom: 16px;">AI is always optional. Static analysis works perfectly alone.</p>
+        <p class="subtitle-muted">AI is always optional. Static analysis works perfectly alone.</p>
 
         <table>
             <thead>
@@ -420,7 +421,7 @@ class MyScanner(BaseScanner):
         findings = []
         # Your detection logic here
         return findings</code></pre>
-        <p style="color: var(--text-muted); margin-top: 12px;">
+        <p class="note-muted">
             Then add one import line in <code>scout/scanners/__init__.py</code>. That's it.
         </p>
     </section>
