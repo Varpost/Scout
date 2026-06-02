@@ -3,8 +3,6 @@
 # NOTE: Provider-specific secrets (AWS, Stripe, GitHub, Slack) are tested
 # with inline content in test_secrets.py to avoid GitHub Push Protection blocks.
 
-import os
-
 # Database URL with embedded password (CRITICAL)
 DATABASE_URL = "postgres://admin:supersecretpass123@prod-db.example.com:5432/myapp"
 

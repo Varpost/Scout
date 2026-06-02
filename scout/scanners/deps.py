@@ -30,9 +30,9 @@ class DepsScanner(BaseScanner):
         # Determine project root from first file
         project_root = files[0].parent
         while project_root != project_root.parent:
-            if any((project_root / f).exists() for f in [
-                "requirements.txt", "pyproject.toml", "package.json", "Pipfile"
-            ]):
+            if any(
+                (project_root / f).exists() for f in ["requirements.txt", "pyproject.toml", "package.json", "Pipfile"]
+            ):
                 break
             project_root = project_root.parent
 
@@ -51,9 +51,13 @@ class DepsScanner(BaseScanner):
             return []
 
         try:
-            result = subprocess.run(
+            # S607: 'pip' is a well-known CLI tool; resolving an absolute path
+            # would break across virtualenvs. Args are list-form, not shell.
+            result = subprocess.run(  # noqa: S603, S607
                 ["pip", "audit", "--format=json", "--desc"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
                 cwd=str(project_root),
             )
         except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -70,20 +74,23 @@ class DepsScanner(BaseScanner):
                 version = vuln.get("version", "?")
                 vuln_id = vuln.get("id", "")
                 desc = vuln.get("description", "No description available.")
-                fix_version = vuln.get("fix_versions", ["latest"])[0] if vuln.get("fix_versions") else "latest"
+                fix_versions = vuln.get("fix_versions")
+                fix_version = fix_versions[0] if fix_versions else "latest"
 
                 severity = self._map_severity(vuln.get("aliases", []))
-                findings.append(Finding(
-                    file=str(project_root / "requirements.txt"),
-                    line=0,
-                    severity=severity,
-                    title=f"Vulnerable package: {pkg}=={version} ({vuln_id})",
-                    description=f"{desc} Upgrade to fix.",
-                    scanner=self.name,
-                    snippet=f"{pkg}=={version}",
-                    fix_phase=1,
-                    fix_summary=f"Upgrade {pkg} to >={fix_version}",
-                ))
+                findings.append(
+                    Finding(
+                        file=str(project_root / "requirements.txt"),
+                        line=0,
+                        severity=severity,
+                        title=f"Vulnerable package: {pkg}=={version} ({vuln_id})",
+                        description=f"{desc} Upgrade to fix.",
+                        scanner=self.name,
+                        snippet=f"{pkg}=={version}",
+                        fix_phase=1,
+                        fix_summary=f"Upgrade {pkg} to >={fix_version}",
+                    )
+                )
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -95,9 +102,13 @@ class DepsScanner(BaseScanner):
             return []
 
         try:
-            result = subprocess.run(
+            # S607: 'npm' is a well-known CLI tool; absolute paths vary per
+            # install. Args are list-form, not shell.
+            result = subprocess.run(  # noqa: S603, S607
                 ["npm", "audit", "--json"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
                 cwd=str(project_root),
             )
         except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -112,20 +123,25 @@ class DepsScanner(BaseScanner):
                 if severity == "MODERATE":
                     severity = "MEDIUM"
                 via = info.get("via", [])
-                desc = via[0].get("title", "Known vulnerability") if via and isinstance(via[0], dict) else f"Vulnerable dependency: {pkg_name}"
+                if via and isinstance(via[0], dict):
+                    desc = via[0].get("title", "Known vulnerability")
+                else:
+                    desc = f"Vulnerable dependency: {pkg_name}"
                 fix_cmd = info.get("fixAvailable", "npm audit fix")
 
-                findings.append(Finding(
-                    file=str(project_root / "package.json"),
-                    line=0,
-                    severity=severity,
-                    title=f"Vulnerable package: {pkg_name}",
-                    description=desc,
-                    scanner=self.name,
-                    snippet=f'"{pkg_name}": ...',
-                    fix_phase=1,
-                    fix_summary=f"Run `npm audit fix` or manually update {pkg_name}. Fix: {fix_cmd}",
-                ))
+                findings.append(
+                    Finding(
+                        file=str(project_root / "package.json"),
+                        line=0,
+                        severity=severity,
+                        title=f"Vulnerable package: {pkg_name}",
+                        description=desc,
+                        scanner=self.name,
+                        snippet=f'"{pkg_name}": ...',
+                        fix_phase=1,
+                        fix_summary=(f"Run `npm audit fix` or manually update {pkg_name}. Fix: {fix_cmd}"),
+                    )
+                )
         except (json.JSONDecodeError, KeyError):
             pass
 

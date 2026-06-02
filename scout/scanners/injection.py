@@ -73,8 +73,7 @@ XSS_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     (
         "Unescaped template output",
         re.compile(r"""\{\{\{.*?\}\}\}|<%[-=].*?%>|\{\%\s*autoescape\s+false"""),
-        "Template rendering without HTML escaping. User input will be rendered as raw HTML, "
-        "allowing script injection.",
+        "Template rendering without HTML escaping. User input will be rendered as raw HTML, allowing script injection.",
     ),
 ]
 
@@ -100,7 +99,7 @@ class InjectionScanner(BaseScanner):
         for pattern_group, severity, fix_phase in all_patterns:
             for title, regex, description in pattern_group:
                 for match in regex.finditer(content):
-                    line_num = content[:match.start()].count("\n") + 1
+                    line_num = content[: match.start()].count("\n") + 1
                     line_text = lines[line_num - 1] if line_num <= len(lines) else ""
 
                     # Skip if in a comment
@@ -112,16 +111,18 @@ class InjectionScanner(BaseScanner):
                     end = min(len(lines), line_num + 1)
                     snippet = "\n".join(lines[start:end])
 
-                    findings.append(Finding(
-                        file=str(file_path),
-                        line=line_num,
-                        severity=severity,
-                        title=title,
-                        description=description,
-                        scanner=self.name,
-                        snippet=snippet,
-                        fix_phase=fix_phase,
-                        fix_summary=f"Use parameterized queries / safe APIs instead of string interpolation.",
-                    ))
+                    findings.append(
+                        Finding(
+                            file=str(file_path),
+                            line=line_num,
+                            severity=severity,
+                            title=title,
+                            description=description,
+                            scanner=self.name,
+                            snippet=snippet,
+                            fix_phase=fix_phase,
+                            fix_summary=("Use parameterized queries / safe APIs instead of string interpolation."),
+                        )
+                    )
 
         return findings

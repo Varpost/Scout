@@ -21,13 +21,18 @@ REPORT_TEMPLATE = """\
 ## Executive Summary
 
 {% if critical > 0 -%}
-**Your app has {{ critical }} critical vulnerabilit{{ "y" if critical == 1 else "ies" }}.** These must be fixed before shipping — they allow attackers to steal data, impersonate users, or take over your server.
+**Your app has {{ critical }} critical vulnerabilit{{ "y" if critical == 1 else "ies" }}.**
+These must be fixed before shipping — they allow attackers to steal data,
+impersonate users, or take over your server.
 {% elif high > 0 -%}
-**{{ high }} high-severity issue{{ "s" if high > 1 else "" }} found.** Your app is at serious risk. Fix these in the next release.
+**{{ high }} high-severity issue{{ "s" if high > 1 else "" }} found.**
+Your app is at serious risk. Fix these in the next release.
 {% elif medium > 0 -%}
-**{{ medium }} medium-severity issue{{ "s" if medium > 1 else "" }} found.** Not immediately exploitable, but these weaken your security posture.
+**{{ medium }} medium-severity issue{{ "s" if medium > 1 else "" }} found.**
+Not immediately exploitable, but these weaken your security posture.
 {% else -%}
-**{{ low }} low-severity issue{{ "s" if low > 1 else "" }} found.** Minor improvements recommended but no urgent risk.
+**{{ low }} low-severity issue{{ "s" if low > 1 else "" }} found.**
+Minor improvements recommended but no urgent risk.
 {% endif %}
 
 | Severity | Count |

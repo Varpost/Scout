@@ -19,11 +19,8 @@ def register_scanner(cls: type[BaseScanner]) -> type[BaseScanner]:
 
 def get_all_scanners() -> list[type[BaseScanner]]:
     """Return all registered scanner classes."""
-    # Import scanner modules to trigger registration
-    from scout.scanners import secrets  # noqa: F401
-    from scout.scanners import deps  # noqa: F401
-    from scout.scanners import headers  # noqa: F401
-    from scout.scanners import injection  # noqa: F401
+    # Import scanner modules to trigger registration  # noqa: I001
+    from scout.scanners import deps, headers, injection, secrets  # noqa: F401
 
     return list(_registry)
 
@@ -41,18 +38,55 @@ def collect_files(path: Path, extensions: set[str] | None = None) -> list[Path]:
     """
     if extensions is None:
         extensions = {
-            ".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs",
-            ".java", ".go", ".rb", ".php", ".rs", ".c", ".cpp", ".h",
-            ".yml", ".yaml", ".toml", ".json", ".env", ".cfg", ".ini",
-            ".sh", ".bash", ".zsh", ".ps1", ".bat", ".cmd",
-            ".dockerfile", ".tf", ".hcl",
+            ".py",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".mjs",
+            ".cjs",
+            ".java",
+            ".go",
+            ".rb",
+            ".php",
+            ".rs",
+            ".c",
+            ".cpp",
+            ".h",
+            ".yml",
+            ".yaml",
+            ".toml",
+            ".json",
+            ".env",
+            ".cfg",
+            ".ini",
+            ".sh",
+            ".bash",
+            ".zsh",
+            ".ps1",
+            ".bat",
+            ".cmd",
+            ".dockerfile",
+            ".tf",
+            ".hcl",
         }
 
     files: list[Path] = []
     skip_dirs = {
-        "node_modules", ".git", "__pycache__", ".venv", "venv",
-        "env", ".tox", ".mypy_cache", ".pytest_cache", "dist",
-        "build", ".next", ".nuxt", "coverage",
+        "node_modules",
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "env",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".next",
+        ".nuxt",
+        "coverage",
     }
 
     if path.is_file():

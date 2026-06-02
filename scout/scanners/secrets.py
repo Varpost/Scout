@@ -15,7 +15,10 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
         "AWS Access Key",
         re.compile(r"(?<![A-Z0-9])(AKIA[0-9A-Z]{16})(?![A-Z0-9])"),
         "CRITICAL",
-        "AWS access key hardcoded in source. Anyone with this key can access your AWS account, spin up resources, read your data.",
+        (
+            "AWS access key hardcoded in source. Anyone with this key can "
+            "access your AWS account, spin up resources, read your data."
+        ),
         "Move to environment variable. Add to .env (gitignored) and load via os.getenv().",
     ),
     (
@@ -29,8 +32,11 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
         "GitHub Token",
         re.compile(r"(ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})"),
         "CRITICAL",
-        "GitHub personal access token in code. Allows pushing code, reading private repos, managing your account.",
-        "Move to environment variable. Regenerate this token immediately — it may already be revoked by GitHub's secret scanning.",
+        ("GitHub personal access token in code. Allows pushing code, reading private repos, managing your account."),
+        (
+            "Move to environment variable. Regenerate this token immediately \u2014 "
+            "it may already be revoked by GitHub's secret scanning."
+        ),
     ),
     (
         "Stripe Live Key",
@@ -60,14 +66,21 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
             re.IGNORECASE,
         ),
         "HIGH",
-        "Possible API key or secret hardcoded. If this is a real credential, anyone reading this file can impersonate your app.",
+        (
+            "Possible API key or secret hardcoded. If this is a real credential, "
+            "anyone reading this file can impersonate your app."
+        ),
         "Move to environment variable. Use .env file with python-dotenv or equivalent.",
     ),
     (
         "Private Key",
         re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"),
         "CRITICAL",
-        "Private key embedded in source file. This is the worst kind of secret leak — private keys can decrypt traffic, sign code, or authenticate as your server.",
+        (
+            "Private key embedded in source file. This is the worst kind of "
+            "secret leak \u2014 private keys can decrypt traffic, sign code, "
+            "or authenticate as your server."
+        ),
         "Move to a secure file outside the repo. Load path from environment variable.",
     ),
     (
@@ -77,7 +90,10 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
             re.IGNORECASE,
         ),
         "CRITICAL",
-        "Database connection string with embedded password. Anyone with this string has direct access to your database.",
+        (
+            "Database connection string with embedded password. Anyone with "
+            "this string has direct access to your database."
+        ),
         "Move connection string to environment variable. Use .env file.",
     ),
     (
@@ -132,8 +148,13 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
 
 # File patterns to skip (test files, lock files, etc.)
 SKIP_PATTERNS = {
-    "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock",
-    "Pipfile.lock", "Gemfile.lock", "composer.lock",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "poetry.lock",
+    "Pipfile.lock",
+    "Gemfile.lock",
+    "composer.lock",
 }
 
 
@@ -156,7 +177,7 @@ class SecretsScanner(BaseScanner):
         for pattern_name, regex, severity, description, fix_summary in SECRET_PATTERNS:
             for match in regex.finditer(content):
                 # Find line number
-                line_start = content[:match.start()].count("\n") + 1
+                line_start = content[: match.start()].count("\n") + 1
 
                 # Skip if in a comment (basic heuristic)
                 line_text = lines[line_start - 1] if line_start <= len(lines) else ""
@@ -171,16 +192,18 @@ class SecretsScanner(BaseScanner):
                 end = min(len(lines), line_start + 1)
                 snippet = "\n".join(lines[start:end])
 
-                findings.append(Finding(
-                    file=str(file_path),
-                    line=line_start,
-                    severity=severity,
-                    title=f"{pattern_name} detected",
-                    description=description,
-                    scanner=self.name,
-                    snippet=snippet,
-                    fix_phase=1,
-                    fix_summary=fix_summary,
-                ))
+                findings.append(
+                    Finding(
+                        file=str(file_path),
+                        line=line_start,
+                        severity=severity,
+                        title=f"{pattern_name} detected",
+                        description=description,
+                        scanner=self.name,
+                        snippet=snippet,
+                        fix_phase=1,
+                        fix_summary=fix_summary,
+                    )
+                )
 
         return findings

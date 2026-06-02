@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
@@ -15,7 +16,7 @@ class AIResponse:
     """Parsed response from an AI call."""
 
     raw: str
-    parsed: dict | None = None
+    parsed: dict[str, Any] | None = None
     error: str | None = None
 
 
@@ -49,15 +50,17 @@ class AIClient:
         system = (
             "You are a security code reviewer. Analyze this snippet only. "
             "Respond in JSON only. No preamble. "
-            "Format: {\"severity\": \"HIGH\", \"confirmed\": true, "
-            "\"explanation\": \"...\", \"fix_summary\": \"...\"}"
+            'Format: {"severity": "HIGH", "confirmed": true, '
+            '"explanation": "...", "fix_summary": "..."}'
         )
-        user_msg = json.dumps({
-            "file": file,
-            "lines": lines,
-            "issue_type": issue_type,
-            "code": code,
-        })
+        user_msg = json.dumps(
+            {
+                "file": file,
+                "lines": lines,
+                "issue_type": issue_type,
+                "code": code,
+            }
+        )
 
         return self._call(system, user_msg)
 
@@ -90,15 +93,17 @@ class AIClient:
             "Return only the modified code for the exact lines specified. "
             "No explanation. No markdown. Just the replacement code."
         )
-        user_msg = json.dumps({
-            "file": file,
-            "lines": lines,
-            "original_code": original_code,
-            "fix_summary": fix_summary,
-            "phase": phase,
-            "context_above": context_above,
-            "context_below": context_below,
-        })
+        user_msg = json.dumps(
+            {
+                "file": file,
+                "lines": lines,
+                "original_code": original_code,
+                "fix_summary": fix_summary,
+                "phase": phase,
+                "context_above": context_above,
+                "context_below": context_below,
+            }
+        )
 
         return self._call(system, user_msg)
 
@@ -186,10 +191,11 @@ class AIClient:
         except Exception as e:
             return AIResponse(raw="", error=str(e))
 
-    def _try_parse_json(self, text: str) -> dict | None:
+    def _try_parse_json(self, text: str) -> dict[str, Any] | None:
         """Attempt to parse JSON from AI response."""
         try:
-            return json.loads(text)
+            result = json.loads(text)
+            return result if isinstance(result, dict) else None
         except json.JSONDecodeError:
             # Try to extract JSON from markdown code blocks
             if "```" in text:
@@ -197,7 +203,8 @@ class AIClient:
                 end = text.rfind("}") + 1
                 if start >= 0 and end > start:
                     try:
-                        return json.loads(text[start:end])
+                        result = json.loads(text[start:end])
+                        return result if isinstance(result, dict) else None
                     except json.JSONDecodeError:
                         pass
             return None

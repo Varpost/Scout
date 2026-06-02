@@ -52,12 +52,24 @@ Repository = "https://github.com/tejaswirajgit/Scout"
 Issues = "https://github.com/tejaswirajgit/Scout/issues"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "S", "B"]
+# S101 = assert (used by pytest, fine in tests).
 ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer's documented pattern is `Argument(...)` / `Option(...)` in defaults.
+# B008 would force a refactor that goes against the framework's own examples.
+"scout/cli.py" = ["B008"]
+# The deps scanner intentionally invokes `pip` and `npm` by name — absolute
+# paths vary per virtualenv / install. Args are list-form (no shell injection).
+"scout/scanners/deps.py" = ["S603", "S607"]
+# Test fixtures intentionally contain hardcoded "secrets" and unused imports —
+# they exist precisely to be detected by Scout's own scanners.
+"tests/fixtures/*" = ["S105", "S106", "S107", "F401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -66,3 +78,9 @@ addopts = "-v --tb=short"
 [tool.mypy]
 python_version = "3.10"
 strict = true
+
+# Optional AI provider SDKs — only installed via the [ai] extra.
+# CI's lint job installs only [dev], so these stubs are absent.
+[[tool.mypy.overrides]]
+module = ["anthropic", "anthropic.*", "openai", "openai.*"]
+ignore_missing_imports = true
