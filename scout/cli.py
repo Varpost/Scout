@@ -66,48 +66,81 @@ def scan(
         None,
         "--output",
         "-o",
-        help="Output path for the report.",
+        help="Output path. Omit with --format json to pipe to stdout.",
+    ),
+    output_format: str = typer.Option(
+        "markdown",
+        "--format",
+        "-f",
+        help="Output format: markdown (default) | ai-prompt | json.",
     ),
 ) -> None:
     """Scan a project for security vulnerabilities."""
-    from scout.agents.reporter_agent import generate_report
+    from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report
     from scout.agents.scout_agent import run_scout
     from scout.config import load_config
+
+    fmt = output_format.lower()
+    if fmt not in {"markdown", "ai-prompt", "json"}:
+        console.print(
+            f"[bold red]Error:[/bold red] invalid --format '{output_format}'. Choose: markdown | ai-prompt | json."
+        )
+        raise typer.Exit(code=2)
 
     config = load_config(
         ai_provider="none" if no_ai else model,
         ollama_model=ollama_model,
     )
 
-    console.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
+    # `--format json` with no -o pipes clean JSON to stdout; decorative output
+    # then goes to stderr so the pipe stays machine-readable.
+    json_to_stdout = fmt == "json" and output is None
+    msg = Console(stderr=True) if json_to_stdout else console
 
-    findings = run_scout(path, config)
+    msg.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
 
-    if not findings:
-        console.print("[bold green]No vulnerabilities found. Ship it![/bold green]\n")
+    findings = run_scout(path, config, quiet=json_to_stdout)
+
+    if findings:
+        critical = sum(1 for f in findings if f.severity == "CRITICAL")
+        high = sum(1 for f in findings if f.severity == "HIGH")
+        medium = sum(1 for f in findings if f.severity == "MEDIUM")
+        low = sum(1 for f in findings if f.severity == "LOW")
+
+        msg.print(f"Found [bold red]{len(findings)}[/bold red] issues:\n")
+        if critical:
+            msg.print(f"  [bold red]🔴 {critical} critical[/bold red]")
+        if high:
+            msg.print(f"  [red]🟠 {high} high[/red]")
+        if medium:
+            msg.print(f"  [yellow]🟡 {medium} medium[/yellow]")
+        if low:
+            msg.print(f"  [blue]🔵 {low} low[/blue]")
+    elif fmt == "markdown":
+        # Nothing to report — JSON/ai-prompt still emit a valid (empty) document.
+        msg.print("[bold green]No vulnerabilities found. Ship it![/bold green]\n")
         raise typer.Exit()
 
-    # Summarize findings
-    critical = sum(1 for f in findings if f.severity == "CRITICAL")
-    high = sum(1 for f in findings if f.severity == "HIGH")
-    medium = sum(1 for f in findings if f.severity == "MEDIUM")
-    low = sum(1 for f in findings if f.severity == "LOW")
+    if fmt == "json":
+        text = generate_json(findings, output, project_path=path)
+        if json_to_stdout:
+            print(text)
+        else:
+            msg.print(f"\n[bold green]JSON written to:[/bold green] {output}")
+        raise typer.Exit()
 
-    console.print(f"Found [bold red]{len(findings)}[/bold red] issues:\n")
-    if critical:
-        console.print(f"  [bold red]🔴 {critical} critical[/bold red]")
-    if high:
-        console.print(f"  [red]🟠 {high} high[/red]")
-    if medium:
-        console.print(f"  [yellow]🟡 {medium} medium[/yellow]")
-    if low:
-        console.print(f"  [blue]🔵 {low} low[/blue]")
+    if fmt == "ai-prompt":
+        prompts_path = output or path / "security-prompts.md"
+        generate_ai_prompts(findings, prompts_path, project_path=path)
+        msg.print(f"\n[bold green]AI fix prompts written to:[/bold green] {prompts_path}")
+        msg.print("[dim]Paste each block into your AI assistant (Cursor, Claude, Copilot, …).[/dim]\n")
+        raise typer.Exit()
 
-    # Generate report
+    # markdown (default)
     report_path = output or path / "security-report.md"
     generate_report(findings, report_path, project_path=path)
-    console.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
-    console.print("[dim]Next: open the report, then run `scout fix --phase 1`[/dim]\n")
+    msg.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
+    msg.print("[dim]Next: open the report, then run `scout fix --phase 1`[/dim]\n")
 
 
 @app.command()
