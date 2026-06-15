@@ -28,6 +28,7 @@ class Finding:
     snippet: str = ""
     fix_phase: int = 1
     fix_summary: str = ""
+    references: list[str] = field(default_factory=list)
     ai_confirmed: bool | None = None
 
 

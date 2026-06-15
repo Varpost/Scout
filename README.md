@@ -32,6 +32,27 @@ scout scan ./my-project --model anthropic    # Requires ANTHROPIC_API_KEY in .en
 scout scan ./my-project --model openai       # Requires OPENAI_API_KEY in .env
 ```
 
+## Output Formats
+
+One scan, three views — choose with `--format` (`-f`):
+
+```bash
+# Layer 1 — human-readable Markdown report (default)
+scout scan ./my-app
+scout scan ./my-app -o security-report.md
+
+# Layer 2 — ready-to-paste prompts for your own AI (Cursor, Claude, Copilot…)
+scout scan ./my-app --format ai-prompt          # writes security-prompts.md
+scout scan ./my-app --format ai-prompt -o prompts.md
+
+# Layer 3 — machine-readable JSON for piping into agentic tooling / CI
+scout scan ./my-app --format json               # prints JSON to stdout
+scout scan ./my-app --format json -o report.json
+scout scan ./my-app --format json | jq '.findings[]'
+```
+
+The same engine powers all three — Scout finds the problem; your own AI (which already knows your codebase) applies the fix.
+
 ## What It Finds
 
 | Scanner | Detects | Severity |

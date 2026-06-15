@@ -2,12 +2,48 @@
 
 from __future__ import annotations
 
+import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from jinja2 import Template
 
+from scout import __version__
+from scout.ai.prompts import AI_FIX_PROMPT
 from scout.models import Finding
+
+# Code-fence language hint per file extension (for Layer 2 prompt snippets).
+LANGUAGE_BY_EXT = {
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".mjs": "javascript",
+    ".cjs": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".java": "java",
+    ".go": "go",
+    ".rb": "ruby",
+    ".php": "php",
+    ".rs": "rust",
+    ".c": "c",
+    ".cpp": "cpp",
+    ".h": "c",
+    ".sh": "bash",
+    ".bash": "bash",
+    ".yml": "yaml",
+    ".yaml": "yaml",
+    ".json": "json",
+}
+
+# Fallback authoritative references when a finding carries none of its own.
+DEFAULT_REFERENCES = {
+    "secrets": ["https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password"],
+    "injection": ["https://owasp.org/www-community/Injection_Flaws"],
+    "headers": ["https://owasp.org/www-project-secure-headers/"],
+    "deps": ["https://owasp.org/www-community/vulnerabilities/Using_Components_with_Known_Vulnerabilities"],
+}
 
 REPORT_TEMPLATE = """\
 # Security Report — {{ project_name }}
@@ -104,6 +140,40 @@ def severity_badge(severity: str) -> str:
     }.get(severity, "⚪")
 
 
+def _slug(text: str) -> str:
+    """Turn a finding title into a stable lowercase identifier slug."""
+    slug = re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
+    return slug or "finding"
+
+
+def _finding_id(finding: Finding) -> str:
+    """Stable id for a finding, e.g. ``secrets/aws_access_key_detected``."""
+    return f"{finding.scanner}/{_slug(finding.title)}"
+
+
+def _language_for(file: str) -> str:
+    """Markdown code-fence language hint for a file path (empty if unknown)."""
+    return LANGUAGE_BY_EXT.get(Path(file).suffix.lower(), "")
+
+
+def _references_for(finding: Finding) -> list[str]:
+    """Return the finding's own references, or a scanner-level fallback."""
+    if finding.references:
+        return finding.references
+    return DEFAULT_REFERENCES.get(finding.scanner, [])
+
+
+def _relativize(findings: list[Finding], project_path: Path | None) -> None:
+    """Rewrite each finding's file path relative to the project root, in place."""
+    if not project_path:
+        return
+    for f in findings:
+        try:
+            f.file = str(Path(f.file).relative_to(project_path))
+        except ValueError:
+            pass
+
+
 def generate_report(
     findings: list[Finding],
     output_path: Path,
@@ -129,13 +199,7 @@ def generate_report(
     for f in findings:
         phase_counts[f.fix_phase] = phase_counts.get(f.fix_phase, 0) + 1
 
-    # Make relative file paths in findings
-    for f in findings:
-        if project_path:
-            try:
-                f.file = str(Path(f.file).relative_to(project_path))
-            except ValueError:
-                pass
+    _relativize(findings, project_path)
 
     template = Template(REPORT_TEMPLATE)
     template.globals["severity_badge"] = severity_badge
@@ -154,3 +218,106 @@ def generate_report(
     )
 
     output_path.write_text(report, encoding="utf-8")
+
+
+def finding_to_dict(finding: Finding) -> dict[str, object]:
+    """Serialize a single finding to the SCOUT_SPEC §4 Layer 3 JSON shape."""
+    return {
+        "id": _finding_id(finding),
+        "scanner": finding.scanner,
+        "file": finding.file,
+        "line": finding.line,
+        "severity": finding.severity,
+        "fix_phase": finding.fix_phase,
+        "code_snippet": finding.snippet,
+        "title": finding.title,
+        "explanation": finding.description,
+        "fix_guidance": finding.fix_summary,
+        "references": _references_for(finding),
+    }
+
+
+def generate_json(
+    findings: list[Finding],
+    output_path: Path | None = None,
+    project_path: Path | None = None,
+) -> str:
+    """Render findings as machine-readable JSON (Layer 3).
+
+    Args:
+        findings: Findings from the Scout agent.
+        output_path: If given, the JSON is also written here. If None, the
+            JSON is only returned (e.g. for piping to stdout).
+        project_path: Root of the scanned project (file paths are made relative).
+
+    Returns:
+        The JSON document as a string.
+    """
+    _relativize(findings, project_path)
+
+    severity_counts: dict[str, int] = {}
+    for f in findings:
+        severity_counts[f.severity] = severity_counts.get(f.severity, 0) + 1
+
+    payload = {
+        "tool": "scout",
+        "version": __version__,
+        "project": project_path.name if project_path else None,
+        "total_issues": len(findings),
+        "severity_counts": severity_counts,
+        "findings": [finding_to_dict(f) for f in findings],
+    }
+
+    text = json.dumps(payload, indent=2, ensure_ascii=False)
+    if output_path:
+        output_path.write_text(text + "\n", encoding="utf-8")
+    return text
+
+
+def generate_ai_prompts(
+    findings: list[Finding],
+    output_path: Path | None = None,
+    project_path: Path | None = None,
+) -> str:
+    """Render findings as ready-to-paste AI fix prompts (Layer 2).
+
+    Each finding becomes a self-contained prompt (SCOUT_SPEC §7) the user drops
+    into their own AI assistant.
+
+    Args:
+        findings: Findings from the Scout agent.
+        output_path: If given, the prompts are also written here.
+        project_path: Root of the scanned project (file paths are made relative).
+
+    Returns:
+        The full prompt document as a string.
+    """
+    _relativize(findings, project_path)
+
+    header = (
+        "# Scout — AI Fix Prompts\n\n"
+        "Paste each block below into your AI assistant (Cursor, Claude, Copilot, …). "
+        "Each prompt is self-contained.\n"
+    )
+
+    if not findings:
+        return header + "\nNo vulnerabilities found. Nothing to fix.\n"
+
+    blocks: list[str] = []
+    for index, finding in enumerate(findings, start=1):
+        prompt = AI_FIX_PROMPT.format(
+            file_path=finding.file,
+            line_number=finding.line,
+            title=finding.title,
+            language=_language_for(finding.file),
+            code_snippet=finding.snippet or "(snippet unavailable)",
+            why_dangerous=finding.description,
+            fix_steps=finding.fix_summary,
+        )
+        heading = f"## {index}. {severity_badge(finding.severity)} {finding.severity} — {finding.title}"
+        blocks.append(f"{heading}\n\n{prompt}")
+
+    document = header + "\n---\n\n" + "\n\n---\n\n".join(blocks) + "\n"
+    if output_path:
+        output_path.write_text(document, encoding="utf-8")
+    return document
