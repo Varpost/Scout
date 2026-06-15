@@ -119,7 +119,7 @@ Add one import in `scout/scanners/__init__.py` → done.
 ## Development
 
 ```bash
-git clone https://github.com/tejaswirajgit/Scout.git
+git clone https://github.com/Varpost/Scout.git
 cd Scout
 pip install -e ".[dev,ai]"
 pytest
@@ -128,7 +128,7 @@ ruff check scout/ tests/
 
 ## Documentation
 
-Full docs and interactive guide: [https://tejaswirajgit.github.io/Scout/](https://tejaswirajgit.github.io/Scout/)
+Full docs and interactive guide: [https://varpost.github.io/Scout/](https://varpost.github.io/Scout/)
 
 ## License
 
