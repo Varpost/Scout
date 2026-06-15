@@ -70,6 +70,28 @@ def test_no_false_positives_on_safe_code():
     assert len(critical) == 0, f"False positives: {[f.title for f in critical]}"
 
 
+def test_password_placeholder_is_not_flagged():
+    # Regression: real-world FP — a prose value matched the password pattern.
+    scanner = SecretsScanner()
+    content = 'temporary_password="(sent to user email)"'
+    findings = scanner.scan_file(Path("api_server.py"), content)
+    assert not any("Password" in f.title for f in findings), [f.title for f in findings]
+
+
+def test_api_key_placeholder_is_not_flagged():
+    scanner = SecretsScanner()
+    content = 'api_key = "<your-api-key-here>"'
+    findings = scanner.scan_file(Path("config.py"), content)
+    assert findings == []
+
+
+def test_real_password_is_still_flagged():
+    scanner = SecretsScanner()
+    content = 'password = "S3cr3tP4ssw0rdValue99"'
+    findings = scanner.scan_file(Path("api_server.py"), content)
+    assert any("Password" in f.title for f in findings)
+
+
 def test_findings_have_correct_structure():
     scanner = SecretsScanner()
     content = FIXTURES.joinpath("has_secrets.py").read_text()

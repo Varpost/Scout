@@ -157,6 +157,63 @@ SKIP_PATTERNS = {
     "composer.lock",
 }
 
+# Substrings that mark a captured value as a placeholder / prose, not a real
+# credential. Used to suppress false positives like
+# `temporary_password="(sent to user email)"`.
+PLACEHOLDER_MARKERS = (
+    "example",
+    "xxxx",
+    "changeme",
+    "change_me",
+    "placeholder",
+    "your_",
+    "yourpassword",
+    "redacted",
+    "dummy",
+    "sent to",
+    "see ",
+    "n/a",
+    "todo",
+    "<",
+    ">",
+    "{{",
+    "}}",
+    "${",
+    "os.getenv",
+    "os.environ",
+    "process.env",
+    "getenv",
+)
+
+
+# Only freeform "name = value" patterns get placeholder filtering. Strict
+# provider-format keys (AWS AKIA…, GitHub ghp_…, Stripe sk_live_…) are NOT
+# filtered — their fixed shape is the signal, and AWS's own documented example
+# key literally contains "EXAMPLE".
+PLACEHOLDER_FILTERED = {
+    "Generic API Key Assignment",
+    "Password in Variable",
+    "JWT Secret",
+    "Database URL with Password",
+    "AWS Secret Key",
+    "Twilio Auth Token",
+    "Heroku API Key",
+}
+
+
+def _is_probably_not_a_secret(value: str) -> bool:
+    """Heuristic to reject placeholder/prose values captured by a secret regex.
+
+    Real credentials, keys, and tokens never contain whitespace and aren't
+    obvious placeholders. This keeps e.g. ``password="(sent to user email)"``
+    or ``api_key="<your key here>"`` from being reported as leaked secrets.
+    """
+    v = value.strip()
+    if not v or any(ch.isspace() for ch in v):
+        return True
+    low = v.lower()
+    return any(marker in low for marker in PLACEHOLDER_MARKERS)
+
 
 @register_scanner
 class SecretsScanner(BaseScanner):
@@ -176,6 +233,14 @@ class SecretsScanner(BaseScanner):
 
         for pattern_name, regex, severity, description, fix_summary in SECRET_PATTERNS:
             for match in regex.finditer(content):
+                # Skip placeholders / prose for freeform value-patterns
+                # (e.g. password="(sent to user email)"). Strict provider-format
+                # keys are never filtered.
+                if pattern_name in PLACEHOLDER_FILTERED and match.groups():
+                    captured = match.group(1)
+                    if captured is not None and _is_probably_not_a_secret(captured):
+                        continue
+
                 # Find line number
                 line_start = content[: match.start()].count("\n") + 1
 
