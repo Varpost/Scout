@@ -39,3 +39,7 @@ ai_security_team_architecture.svg
 
 .github/agents/
 .github/copilot-instructions.md
+
+# Local-only docs (never commit)
+SCOUT_SPEC.md
+CLAUDE.md
