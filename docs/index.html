@@ -258,6 +258,28 @@
         </div>
     </section>
 
+    <!-- Output formats -->
+    <section>
+        <h2>Three Ways to Use the Results</h2>
+        <p class="subtitle-muted">One scan, three output formats — pick with <code>--format</code>. Scout finds the problem; your own AI fixes it.</p>
+
+        <h3>1. Markdown report (default)</h3>
+        <p class="text-muted-large">A clean, human-readable report you open and read.</p>
+        <pre><code>scout scan ./my-app
+scout scan ./my-app -o security-report.md</code></pre>
+
+        <h3>2. AI-ready prompts</h3>
+        <p class="text-muted-large">Ready-to-paste prompts you drop into Cursor, Claude, or Copilot — your AI already knows your codebase, so it writes the best fix.</p>
+        <pre><code>scout scan ./my-app --format ai-prompt          # writes security-prompts.md
+scout scan ./my-app --format ai-prompt -o prompts.md</code></pre>
+
+        <h3>3. Machine-readable JSON</h3>
+        <p class="text-muted-large">Structured output for piping into agentic tooling, CI, or your own scripts.</p>
+        <pre><code>scout scan ./my-app --format json               # prints JSON to stdout
+scout scan ./my-app --format json -o report.json
+scout scan ./my-app --format json | jq '.findings[]'</code></pre>
+    </section>
+
     <!-- Features -->
     <section>
         <h2>Features</h2>
@@ -335,9 +357,10 @@
         <pre><code>scout scan &lt;path&gt; [OPTIONS]
 
 Options:
+  --format, -f   Output format: markdown | ai-prompt | json (default: markdown)
   --model, -m    AI provider: anthropic | openai | ollama | none (default: none)
   --no-ai        Skip AI pass entirely (static scan only)
-  --output, -o   Output path for the report
+  --output, -o   Output path (omit with --format json to print to stdout)
   --ollama-model Ollama model name (default: llama3)</code></pre>
 
         <h3>scout fix <span class="badge-coming-soon">(coming soon)</span></h3>
@@ -390,7 +413,7 @@ Re-scans changed files + runs tests to confirm fixes worked.</code></pre>
         <h2>Example Output</h2>
         <pre><code>$ scout scan ./my-app
 
-Scout v0.1.0 scanning: ./my-app
+Scout v0.1.2 scanning: ./my-app
 
   Scanning 47 files...
 
@@ -429,7 +452,7 @@ class MyScanner(BaseScanner):
 
 <footer>
     <p>
-        <a href="https://github.com/tejaswirajgit/Scout">GitHub</a> ·
+        <a href="https://github.com/Varpost/Scout">GitHub</a> ·
         <a href="https://pypi.org/project/scout-security/">PyPI</a> ·
         MIT License · Made for indie devs who ship fast
     </p>
