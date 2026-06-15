@@ -2,12 +2,34 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
 from scout import __version__
+
+
+def _force_utf8_output() -> None:
+    """Make stdout/stderr UTF-8 so Scout never crashes on Windows.
+
+    Windows consoles and pipes default to cp1252, which cannot encode Scout's
+    progress spinner glyphs and severity emoji — rich then raises
+    UnicodeEncodeError mid-scan. Reconfiguring the streams to UTF-8 fixes both
+    the interactive and the piped/redirected cases.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8")
+        except (ValueError, OSError):  # detached or non-reconfigurable stream
+            pass
+
+
+_force_utf8_output()
 
 app = typer.Typer(
     name="scout",
