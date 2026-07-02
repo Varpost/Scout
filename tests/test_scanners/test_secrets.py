@@ -175,7 +175,7 @@ def test_env_secret_detected_end_to_end(tmp_path):
     from scout.cli import app
 
     (tmp_path / ".env").write_text("PASSWORD=supersecretvalue123\n", encoding="utf-8")
-    result = CliRunner().invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    result = CliRunner().invoke(app, ["scan", str(tmp_path), "--no-ai", "--fail-on", "never"])
     assert result.exit_code == 0
     report = (tmp_path / "security-report.md").read_text(encoding="utf-8")
     assert "Unquoted secret assignment detected" in report
