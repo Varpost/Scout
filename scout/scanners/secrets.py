@@ -254,6 +254,26 @@ def _is_probably_not_a_secret(value: str) -> bool:
     return any(marker in low for marker in PLACEHOLDER_MARKERS)
 
 
+# Unquoted KEY=VALUE assignments — the way real .env files are written. The
+# quoted-value patterns above can't see them. Gated to env-like files so
+# ordinary source code doesn't false-positive. Also matches docker-compose
+# `- KEY=value` environment list entries.
+UNQUOTED_SECRET_ASSIGNMENT = re.compile(
+    r"""^\s*(?:-\s+)?(?:export\s+)?"""
+    r"""([A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY)[A-Z0-9_]*)"""
+    r"""\s*=\s*([^\s'"#]{8,})\s*$""",
+    re.MULTILINE,
+)
+
+
+def _is_env_like_file(file_path: Path) -> bool:
+    """True for files where unquoted KEY=VALUE assignments are the norm."""
+    name = file_path.name.lower()
+    if name == ".env" or name.startswith(".env.") or name.endswith(".env"):
+        return True
+    return file_path.suffix.lower() in {".yml", ".yaml", ".ini", ".cfg"}
+
+
 @register_scanner
 class SecretsScanner(BaseScanner):
     """Detects hardcoded secrets, API keys, tokens, and passwords."""
@@ -322,4 +342,48 @@ class SecretsScanner(BaseScanner):
                     )
                 )
 
+        if _is_env_like_file(file_path):
+            findings.extend(self._scan_unquoted_env_values(file_path, content, lines))
+
+        return findings
+
+    def _scan_unquoted_env_values(self, file_path: Path, content: str, lines: list[str]) -> list[Finding]:
+        """Detect unquoted KEY=VALUE secrets in env-style files.
+
+        Args:
+            file_path: File being scanned (already gated to env-like files).
+            content: Full file content.
+            lines: Pre-split lines for snippet extraction.
+
+        Returns:
+            Findings for secret-looking unquoted assignments.
+        """
+        findings: list[Finding] = []
+        for match in UNQUOTED_SECRET_ASSIGNMENT.finditer(content):
+            if _is_probably_not_a_secret(match.group(2)):
+                continue
+            line_start = content[: match.start()].count("\n") + 1
+            start = max(0, line_start - 2)
+            end = min(len(lines), line_start + 1)
+            findings.append(
+                Finding(
+                    file=str(file_path),
+                    line=line_start,
+                    severity="HIGH",
+                    title="Unquoted secret assignment detected",
+                    description=(
+                        f"`{match.group(1)}` is assigned an unquoted value that looks like a real "
+                        "credential. .env and config files are the most commonly leaked secret "
+                        "location — if this file is ever committed, the credential is public."
+                    ),
+                    scanner=self.name,
+                    snippet="\n".join(lines[start:end]),
+                    fix_phase=1,
+                    fix_summary=(
+                        "Keep this file out of version control (gitignore it), use placeholder "
+                        "values in committed examples, and rotate the credential if the file was "
+                        "ever pushed."
+                    ),
+                )
+            )
         return findings

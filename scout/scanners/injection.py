@@ -32,6 +32,18 @@ SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "SQL query using %-formatting with variables. This is NOT parameterization — "
         "it's string interpolation that allows SQL injection.",
     ),
+    (
+        "SQL template literal",
+        # JS: db.query(`SELECT … ${userId}`) — a backtick query containing
+        # both an interpolation and a SQL keyword, in either order.
+        re.compile(
+            r"""(?:query|execute)\s*\(\s*`(?=[^`]*\$\{)(?=[^`]*(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE))""",
+            re.IGNORECASE,
+        ),
+        "SQL query built with a JavaScript template literal. `${...}` interpolation is string "
+        "gluing, not parameterization — an attacker can inject `' OR 1=1 --` through any "
+        "interpolated value.",
+    ),
 ]
 
 # Command Injection patterns
@@ -64,6 +76,33 @@ CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         re.compile(r"""(?<![\w.])eval\s*\("""),
         "eval() executes arbitrary code. If the input can be influenced by a user in any way, "
         "they can execute any code on your server.",
+    ),
+    (
+        "exec() with template literal",
+        # JS child_process exec/execSync, usually destructured to a bare name:
+        # exec(`ping -c 1 ${host}`). The (?<![\w.]) lookbehind keeps
+        # regex.exec(...) method calls from matching.
+        re.compile(r"""(?<![\w.])exec(?:Sync)?\s*\(\s*`[^`]*\$\{"""),
+        "child_process exec() with an interpolated template literal. Anything a user controls "
+        "in `${...}` becomes part of the shell command — `; rm -rf /` included.",
+    ),
+    (
+        "exec() with string concatenation",
+        re.compile(r"""(?<![\w.])exec(?:Sync)?\s*\(\s*['"][^'"]*['"]\s*\+"""),
+        "child_process exec() with a concatenated command string. User input glued into the "
+        "command lets attackers run arbitrary shell commands.",
+    ),
+    (
+        "child_process exec with variable command",
+        re.compile(r"""child_process\s*\.\s*exec(?:Sync)?\s*\(\s*[A-Za-z_$]"""),
+        "child_process.exec() called with a variable command. If any part of that variable "
+        "comes from user input, this is command injection.",
+    ),
+    (
+        "spawn() with shell:true",
+        re.compile(r"""\bspawn(?:Sync)?\s*\([^)]*shell\s*:\s*true""", re.IGNORECASE),
+        "spawn() with shell:true routes the command through a shell, re-enabling the exact "
+        "injection risk spawn's argument-array form exists to prevent.",
     ),
 ]
 
