@@ -60,7 +60,7 @@ The same engine powers all three — Scout finds the problem; your own AI (which
 | `secrets` | AWS keys, GitHub tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
 | `injection` | SQL injection, command injection, eval(), XSS | CRITICAL |
 | `headers` | Missing helmet, wildcard CORS, no CSP | HIGH |
-| `deps` | Known vulnerabilities in pip/npm packages | HIGH |
+| `deps` | Known vulnerabilities in pinned pip dependencies (via OSV.dev) | HIGH |
 
 ## Example Output
 
