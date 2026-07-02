@@ -178,6 +178,7 @@ def generate_report(
     findings: list[Finding],
     output_path: Path,
     project_path: Path | None = None,
+    files_scanned: int | None = None,
 ) -> None:
     """Generate a Markdown security report from findings.
 
@@ -185,6 +186,7 @@ def generate_report(
         findings: List of findings from the Scout agent.
         output_path: Where to write the report.
         project_path: Root of the scanned project (for display).
+        files_scanned: Number of files the scan actually covered.
     """
     project_name = project_path.name if project_path else "Unknown Project"
 
@@ -207,7 +209,7 @@ def generate_report(
     report = template.render(
         project_name=project_name,
         scan_date=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-        files_scanned="—",
+        files_scanned=files_scanned if files_scanned is not None else "—",
         total_issues=len(findings),
         critical=critical,
         high=high,
@@ -241,6 +243,7 @@ def generate_json(
     findings: list[Finding],
     output_path: Path | None = None,
     project_path: Path | None = None,
+    files_scanned: int | None = None,
 ) -> str:
     """Render findings as machine-readable JSON (Layer 3).
 
@@ -249,6 +252,7 @@ def generate_json(
         output_path: If given, the JSON is also written here. If None, the
             JSON is only returned (e.g. for piping to stdout).
         project_path: Root of the scanned project (file paths are made relative).
+        files_scanned: Number of files the scan actually covered.
 
     Returns:
         The JSON document as a string.
@@ -263,6 +267,7 @@ def generate_json(
         "tool": "scout",
         "version": __version__,
         "project": project_path.name if project_path else None,
+        "files_scanned": files_scanned,
         "total_issues": len(findings),
         "severity_counts": severity_counts,
         "findings": [finding_to_dict(f) for f in findings],
