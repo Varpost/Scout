@@ -23,13 +23,11 @@ pip install scout-security
 ## Usage
 
 ```bash
-# Scan a project (static analysis, no AI needed)
+# Scan a project — deterministic static analysis: no API keys, no tokens, no signup
 scout scan ./my-project
 
-# With AI confirmation (optional — reduces false positives)
-scout scan ./my-project --model ollama       # Free, local
-scout scan ./my-project --model anthropic    # Requires ANTHROPIC_API_KEY in .env
-scout scan ./my-project --model openai       # Requires OPENAI_API_KEY in .env
+# Turn the findings into ready-to-paste fix prompts for your AI assistant
+scout scan ./my-project --format ai-prompt
 ```
 
 ## Output Formats
@@ -86,14 +84,9 @@ The report includes:
 - Exact fix instructions for each issue
 - Phased remediation plan (zero-risk fixes first)
 
-## AI Providers (Optional)
+## Roadmap: AI Confirmation Pass (not yet implemented)
 
-| Provider | Setup | Cost |
-|----------|-------|------|
-| None (default) | Nothing — works out of the box | Free |
-| Ollama (local) | `ollama pull llama3` | Free |
-| Anthropic | Set `ANTHROPIC_API_KEY` in .env | ~$0.01/scan |
-| OpenAI | Set `OPENAI_API_KEY` in .env | ~$0.01/scan |
+The CLI reserves `--model` / `--ollama-model` / `--no-ai` flags for a planned optional pass that double-checks findings with an AI provider (Anthropic, OpenAI, or local Ollama) to cut false positives further. **It is not implemented yet** — today every scan is 100% static: deterministic, offline, zero tokens. When it ships, it will remain optional and off by default; the core scan will never require an API key.
 
 ## Add a Custom Scanner
 

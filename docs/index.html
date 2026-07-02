@@ -218,7 +218,7 @@
             <span class="badge">Python 3.10+</span>
             <span class="badge">MIT License</span>
             <span class="badge">Zero Config</span>
-            <span class="badge">AI Optional</span>
+            <span class="badge">AI-Ready Output</span>
         </div>
     </section>
 
@@ -231,7 +231,7 @@
         </p>
         <p class="text-large">
             <strong>Scout catches what AI introduces.</strong> Static analysis finds the most common mistakes AI assistants make — leaked keys, string-built SQL, shell=True, missing security headers — no API keys needed.
-            Optional AI confirmation reduces false positives further.
+            Then it hands your own AI assistant ready-to-paste fix prompts.
         </p>
     </section>
 
@@ -287,12 +287,12 @@ scout scan ./my-app --format json | jq '.findings[]'</code></pre>
             <div class="feature-card">
                 <div class="icon">🔍</div>
                 <h3>Static Analysis</h3>
-                <p>AST + regex patterns detect secrets, injections, XSS, missing headers, and vulnerable deps. Works offline, instantly.</p>
+                <p>Regex-based patterns detect secrets, injections, XSS, missing headers, and vulnerable deps. Deterministic: same scan, same findings.</p>
             </div>
             <div class="feature-card">
                 <div class="icon">🤖</div>
-                <h3>AI Confirmation (Optional)</h3>
-                <p>Send flagged snippets to Claude, GPT, or local Ollama. Reduces false positives. Never sends full files.</p>
+                <h3>AI-Ready Output</h3>
+                <p><code>--format ai-prompt</code> turns every finding into a self-contained fix prompt for Cursor, Claude, or Copilot — your AI already knows your codebase.</p>
             </div>
             <div class="feature-card">
                 <div class="icon">📋</div>
@@ -302,7 +302,7 @@ scout scan ./my-app --format json | jq '.findings[]'</code></pre>
             <div class="feature-card">
                 <div class="icon">🔒</div>
                 <h3>Privacy First</h3>
-                <p>Everything runs locally. No telemetry. No cloud. Your code never leaves your machine unless you opt into AI.</p>
+                <p>Your code never leaves your machine. No telemetry, no signup. Dependency checks query the OSV.dev database with package names only — never your code.</p>
             </div>
             <div class="feature-card">
                 <div class="icon">⚡</div>
@@ -342,7 +342,7 @@ scout scan ./my-app --format json | jq '.findings[]'</code></pre>
                 </tr>
                 <tr>
                     <td><code>deps</code></td>
-                    <td>Known vulnerabilities via pip-audit / npm audit</td>
+                    <td>Known vulnerabilities in pinned pip dependencies (via OSV.dev)</td>
                     <td><span class="sev-high">HIGH</span></td>
                 </tr>
             </tbody>
@@ -358,54 +358,19 @@ scout scan ./my-app --format json | jq '.findings[]'</code></pre>
 
 Options:
   --format, -f   Output format: markdown | ai-prompt | json (default: markdown)
-  --model, -m    AI provider: anthropic | openai | ollama | none (default: none)
-  --no-ai        Skip AI pass entirely (static scan only)
-  --output, -o   Output path (omit with --format json to print to stdout)
-  --ollama-model Ollama model name (default: llama3)</code></pre>
-
-        <h3>scout fix <span class="badge-coming-soon">(coming soon)</span></h3>
-        <pre><code>scout fix --phase 1 &lt;path&gt;
-
-Applies zero-risk fixes: moves secrets to .env, bumps vulnerable deps.</code></pre>
-
-        <h3>scout validate <span class="badge-coming-soon">(coming soon)</span></h3>
-        <pre><code>scout validate &lt;path&gt;
-
-Re-scans changed files + runs tests to confirm fixes worked.</code></pre>
+  --output, -o   Output path (omit with --format json to print to stdout)</code></pre>
     </section>
 
-    <!-- AI Providers -->
+    <!-- Roadmap: AI confirmation -->
     <section>
-        <h2>AI Providers</h2>
-        <p class="subtitle-muted">AI is always optional. Static analysis works perfectly alone.</p>
-
-        <table>
-            <thead>
-                <tr><th>Provider</th><th>Setup</th><th>Cost</th></tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>None (default)</td>
-                    <td>Nothing — works out of the box</td>
-                    <td>Free</td>
-                </tr>
-                <tr>
-                    <td>Ollama (local)</td>
-                    <td><code>ollama pull llama3</code> then <code>scout scan --model ollama</code></td>
-                    <td>Free</td>
-                </tr>
-                <tr>
-                    <td>Anthropic</td>
-                    <td>Set <code>ANTHROPIC_API_KEY</code> in .env</td>
-                    <td>~$0.01/scan</td>
-                </tr>
-                <tr>
-                    <td>OpenAI</td>
-                    <td>Set <code>OPENAI_API_KEY</code> in .env</td>
-                    <td>~$0.01/scan</td>
-                </tr>
-            </tbody>
-        </table>
+        <h2>Roadmap: AI Confirmation Pass</h2>
+        <p class="text-muted-large">
+            A planned <em>optional</em> pass that double-checks findings with an AI provider
+            (Anthropic, OpenAI, or local Ollama) to cut false positives further.
+            <strong>Not yet implemented</strong> — today every scan is 100% static: deterministic,
+            offline, zero tokens. When it ships, it will stay optional and off by default;
+            the core scan will never require an API key or account.
+        </p>
     </section>
 
     <!-- Example Output -->
@@ -424,7 +389,7 @@ Found 6 issues:
   🟡 1 medium
 
 Report written to: ./my-app/security-report.md
-Next: open the report, then run `scout fix --phase 1`</code></pre>
+Next: run `scout scan --format ai-prompt` and paste the prompts into your AI assistant.</code></pre>
     </section>
 
     <!-- Contributing -->

@@ -153,3 +153,13 @@ def test_markdown_shows_real_files_scanned_count(tmp_path: Path):
 def test_json_includes_files_scanned():
     data = json.loads(generate_json(_sample_findings(), files_scanned=3))
     assert data["files_scanned"] == 3
+
+
+def test_markdown_report_does_not_reference_stub_commands(tmp_path: Path):
+    # The report used to tell users to run `scout fix` — an unimplemented stub.
+    out = tmp_path / "report.md"
+    generate_report(_sample_findings(), out, project_path=None)
+    text = out.read_text(encoding="utf-8")
+    assert "scout fix" not in text
+    assert "scout validate" not in text
+    assert "ai-prompt" in text

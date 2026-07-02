@@ -90,7 +90,8 @@ Minor improvements recommended but no urgent risk.
 | 4 | Injection & data layer | Medium-high | {{ phase_counts.get(4, 0) }} |
 | 5 | Architecture changes | High | {{ phase_counts.get(5, 0) }} |
 
-**How to apply:** Run `scout fix --phase 1` to start with zero-risk fixes.
+**How to apply:** Run `scout scan <path> --format ai-prompt` to turn every issue below into a
+ready-to-paste fix prompt for your AI assistant. Start with Phase 1 — those fixes are zero-risk.
 
 ---
 
@@ -119,10 +120,10 @@ Minor improvements recommended but no urgent risk.
 ## Next Steps
 
 1. Review this report
-2. Run `scout fix --phase 1` (zero-risk — secrets moved to .env, deps updated)
-3. Test your app
-4. Continue with `scout fix --phase 2` when ready
-5. After fixes: `scout validate` to confirm issues are resolved
+2. Run `scout scan <path> --format ai-prompt` for ready-to-paste fix prompts (start with Phase 1 — zero-risk)
+3. Apply the fixes with your AI assistant (Cursor, Claude, Copilot, …)
+4. Test your app
+5. Re-run `scout scan` to verify the issues are gone
 
 ---
 

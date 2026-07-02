@@ -72,17 +72,17 @@ def scan(
         "none",
         "--model",
         "-m",
-        help="AI provider: anthropic | openai | ollama | none (static only).",
+        help="Reserved — AI confirmation pass not yet implemented. Every scan is currently static-only.",
     ),
     ollama_model: str = typer.Option(
         "llama3",
         "--ollama-model",
-        help="Ollama model name (if using ollama).",
+        help="Reserved — AI confirmation pass not yet implemented.",
     ),
     no_ai: bool = typer.Option(
         False,
         "--no-ai",
-        help="Skip AI pass entirely (static scan only).",
+        help="Skip the AI pass (currently a no-op — the AI pass is not yet implemented).",
     ),
     output: Path | None = typer.Option(
         None,
@@ -163,10 +163,12 @@ def scan(
     report_path = output or path / "security-report.md"
     generate_report(findings, report_path, project_path=path, files_scanned=outcome.files_scanned)
     msg.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
-    msg.print("[dim]Next: open the report, then run `scout fix --phase 1`[/dim]\n")
+    msg.print("[dim]Next: run `scout scan --format ai-prompt` and paste the prompts into your AI assistant.[/dim]\n")
 
 
-@app.command()
+# Hidden until implemented (T3.4 decides implement-vs-delete): advertising
+# "Coming soon" stubs in --help funnels users into dead ends.
+@app.command(hidden=True)
 def fix(
     phase: int = typer.Option(
         ...,
@@ -193,7 +195,7 @@ def fix(
     console.print("[yellow]Coming soon.[/yellow] Phase 1 focuses on the scanner.\n")
 
 
-@app.command()
+@app.command(hidden=True)
 def validate(
     path: Path = typer.Argument(
         ".",
@@ -207,7 +209,7 @@ def validate(
     console.print("[yellow]Coming soon.[/yellow]\n")
 
 
-@app.command()
+@app.command(hidden=True)
 def report(
     path: Path = typer.Argument(
         ".",

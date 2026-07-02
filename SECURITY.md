@@ -31,7 +31,7 @@ If you discover a security vulnerability in Scout, please report it responsibly:
 
 Scout implements the following security practices:
 
-- **No `eval()` or `exec()` on user input** — all analysis uses AST parsing and regex
+- **No `eval()` or `exec()` on user input** — all analysis uses regex pattern matching
 - **No `shell=True`** — subprocess calls use list-form arguments only
 - **No secrets in code** — API keys loaded from environment variables only
 - **Path traversal prevention** — all file paths validated with `Path.resolve()` and `.is_relative_to()`
