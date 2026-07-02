@@ -7,12 +7,35 @@ from enum import Enum
 
 
 class Severity(str, Enum):
-    """Vulnerability severity levels."""
+    """Vulnerability severity levels — declaration order IS the ordering.
+
+    Every severity-ordered or severity-enumerating piece of code (sort keys,
+    exit-code thresholds, count/display loops, badge and SARIF level maps)
+    derives from this enum; nothing else may hardcode the list.
+    """
 
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+
+
+_SEVERITY_RANK = {severity: index for index, severity in enumerate(Severity)}
+
+
+def severity_rank(value: str) -> int:
+    """Sort key for a severity string: CRITICAL first, unknown values last.
+
+    Args:
+        value: A severity name, e.g. ``"HIGH"``.
+
+    Returns:
+        Position in the canonical ordering; ``len(Severity)`` when unknown.
+    """
+    try:
+        return _SEVERITY_RANK[Severity(value)]
+    except ValueError:
+        return len(Severity)
 
 
 @dataclass
@@ -36,22 +59,5 @@ class Finding:
     project_level: bool = False
 
 
-@dataclass
-class Phase:
-    """A fix phase grouping related findings."""
-
-    number: int
-    name: str
-    risk_level: str
-    description: str
-    findings: list[Finding] = field(default_factory=list)
-
-
-@dataclass
-class ScanResult:
-    """Complete output of a Scout scan."""
-
-    project_path: str
-    total_files_scanned: int
-    findings: list[Finding] = field(default_factory=list)
-    phases: list[Phase] = field(default_factory=list)
+# Phase and ScanResult dataclasses used to live here — never referenced.
+# ScanOutcome (scout.agents.scout_agent) is the live scan-result type.

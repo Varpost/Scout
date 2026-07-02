@@ -11,7 +11,7 @@ from jinja2 import Template
 
 from scout import __version__
 from scout.ai.prompts import AI_FIX_PROMPT
-from scout.models import Finding
+from scout.models import Finding, Severity
 
 # Code-fence language hint per file extension (for Layer 2 prompt snippets).
 LANGUAGE_BY_EXT = {
@@ -131,14 +131,18 @@ ready-to-paste fix prompt for your AI assistant. Start with Phase 1 — those fi
 """
 
 
+# Keyed off the canonical Severity enum — see models.Severity.
+_SEVERITY_BADGES: dict[str, str] = {
+    Severity.CRITICAL.value: "🔴",
+    Severity.HIGH.value: "🟠",
+    Severity.MEDIUM.value: "🟡",
+    Severity.LOW.value: "🔵",
+}
+
+
 def severity_badge(severity: str) -> str:
     """Return emoji badge for severity level."""
-    return {
-        "CRITICAL": "🔴",
-        "HIGH": "🟠",
-        "MEDIUM": "🟡",
-        "LOW": "🔵",
-    }.get(severity, "⚪")
+    return _SEVERITY_BADGES.get(severity, "⚪")
 
 
 def _slug(text: str) -> str:
@@ -191,11 +195,7 @@ def generate_report(
     """
     project_name = project_path.name if project_path else "Unknown Project"
 
-    # Count severities
-    critical = sum(1 for f in findings if f.severity == "CRITICAL")
-    high = sum(1 for f in findings if f.severity == "HIGH")
-    medium = sum(1 for f in findings if f.severity == "MEDIUM")
-    low = sum(1 for f in findings if f.severity == "LOW")
+    counts = {sev: sum(1 for f in findings if f.severity == sev.value) for sev in Severity}
 
     # Count per phase
     phase_counts: dict[int, int] = {}
@@ -212,10 +212,10 @@ def generate_report(
         scan_date=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         files_scanned=files_scanned if files_scanned is not None else "—",
         total_issues=len(findings),
-        critical=critical,
-        high=high,
-        medium=medium,
-        low=low,
+        critical=counts[Severity.CRITICAL],
+        high=counts[Severity.HIGH],
+        medium=counts[Severity.MEDIUM],
+        low=counts[Severity.LOW],
         phase_counts=phase_counts,
         findings=findings,
     )
@@ -281,9 +281,19 @@ def generate_json(
 
 
 # GitHub Code Scanning displays "error" prominently on PRs; "note" stays quiet.
-_SARIF_LEVELS = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning", "LOW": "note"}
+_SARIF_LEVELS: dict[str, str] = {
+    Severity.CRITICAL.value: "error",
+    Severity.HIGH.value: "error",
+    Severity.MEDIUM.value: "warning",
+    Severity.LOW.value: "note",
+}
 # GitHub's severity badge/sort key (CVSS-like 0-10 string).
-_SARIF_SECURITY_SEVERITY = {"CRITICAL": "9.5", "HIGH": "8.0", "MEDIUM": "5.5", "LOW": "3.0"}
+_SARIF_SECURITY_SEVERITY: dict[str, str] = {
+    Severity.CRITICAL.value: "9.5",
+    Severity.HIGH.value: "8.0",
+    Severity.MEDIUM.value: "5.5",
+    Severity.LOW.value: "3.0",
+}
 
 
 def _sarif_uri(file: str, project_path: Path | None) -> str:

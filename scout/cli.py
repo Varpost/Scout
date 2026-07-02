@@ -10,9 +10,15 @@ from rich.console import Console
 
 from scout import __version__
 from scout.config import FAIL_ON_CHOICES as _FAIL_ON_CHOICES
-from scout.models import Finding
+from scout.models import Finding, Severity, severity_rank
 
-_SEVERITY_RANK = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+# Presentation per severity, iterated in canonical (most-severe-first) order.
+_SEVERITY_STYLES: dict[Severity, tuple[str, str]] = {
+    Severity.CRITICAL: ("bold red", "🔴"),
+    Severity.HIGH: ("red", "🟠"),
+    Severity.MEDIUM: ("yellow", "🟡"),
+    Severity.LOW: ("blue", "🔵"),
+}
 
 
 def _exit_code_for(findings: list[Finding], fail_on: str) -> int:
@@ -27,8 +33,8 @@ def _exit_code_for(findings: list[Finding], fail_on: str) -> int:
     """
     if fail_on == "never":
         return 0
-    threshold = _SEVERITY_RANK[fail_on.upper()]
-    return 1 if any(_SEVERITY_RANK.get(f.severity, 99) <= threshold for f in findings) else 0
+    threshold = severity_rank(fail_on.upper())
+    return 1 if any(severity_rank(f.severity) <= threshold for f in findings) else 0
 
 
 def _force_utf8_output() -> None:
@@ -212,20 +218,12 @@ def scan(
     exit_code = _exit_code_for(findings, config.fail_on)
 
     if findings:
-        critical = sum(1 for f in findings if f.severity == "CRITICAL")
-        high = sum(1 for f in findings if f.severity == "HIGH")
-        medium = sum(1 for f in findings if f.severity == "MEDIUM")
-        low = sum(1 for f in findings if f.severity == "LOW")
-
         msg.print(f"Found [bold red]{len(findings)}[/bold red] issues:\n")
-        if critical:
-            msg.print(f"  [bold red]🔴 {critical} critical[/bold red]")
-        if high:
-            msg.print(f"  [red]🟠 {high} high[/red]")
-        if medium:
-            msg.print(f"  [yellow]🟡 {medium} medium[/yellow]")
-        if low:
-            msg.print(f"  [blue]🔵 {low} low[/blue]")
+        for severity in Severity:
+            count = sum(1 for f in findings if f.severity == severity.value)
+            if count:
+                style, emoji = _SEVERITY_STYLES[severity]
+                msg.print(f"  [{style}]{emoji} {count} {severity.value.lower()}[/{style}]")
     elif fmt == "markdown":
         # Nothing to report — json/sarif/ai-prompt still emit a valid (empty) document.
         msg.print("[bold green]No vulnerabilities found. Ship it![/bold green]\n")

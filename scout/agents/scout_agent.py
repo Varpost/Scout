@@ -11,7 +11,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from scout.agents.reporter_agent import _finding_id
 from scout.config import ScoutConfig
-from scout.models import Finding
+from scout.models import Finding, severity_rank
 from scout.scanners import collect_files, get_all_scanners
 
 console = Console()
@@ -126,8 +126,7 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutco
         all_findings = _run_ai_pass(all_findings, config, quiet=quiet)
 
     # Sort by severity: CRITICAL > HIGH > MEDIUM > LOW
-    severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
-    all_findings.sort(key=lambda f: severity_order.get(f.severity, 99))
+    all_findings.sort(key=lambda f: severity_rank(f.severity))
 
     return ScanOutcome(findings=_dedupe_findings(all_findings), files_scanned=len(files))
 
