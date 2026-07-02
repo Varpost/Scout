@@ -98,6 +98,37 @@ def test_json_format_respects_fail_on(tmp_path):
     assert result.exit_code == 1
 
 
+def test_sarif_format_writes_valid_document_and_respects_fail_on(tmp_path):
+    import json
+
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "app.py").write_text('os.system("ls " + user_input)\n', encoding="utf-8")
+    out = tmp_path / "scout.sarif"
+
+    result = runner.invoke(app, ["scan", str(proj), "--no-ai", "--format", "sarif", "-o", str(out)])
+    assert result.exit_code == 1  # CRITICAL finding gates the exit code
+
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["version"] == "2.1.0"
+    results = data["runs"][0]["results"]
+    assert results
+    assert results[0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] == "app.py"
+
+
+def test_sarif_format_emits_valid_empty_document_on_clean_project(tmp_path):
+    import json
+
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "app.py").write_text("print('hi')\n", encoding="utf-8")
+    out = tmp_path / "scout.sarif"
+
+    result = runner.invoke(app, ["scan", str(proj), "--no-ai", "--format", "sarif", "-o", str(out)])
+    assert result.exit_code == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["runs"][0]["results"] == []
+
+
 def test_invalid_fail_on_exits_2(tmp_path):
     result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--fail-on", "sometimes"])
     assert result.exit_code == 2

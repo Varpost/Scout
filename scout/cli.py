@@ -108,13 +108,13 @@ def scan(
         None,
         "--output",
         "-o",
-        help="Output path. Omit with --format json to pipe to stdout.",
+        help="Output path. Omit with --format json/sarif to pipe to stdout.",
     ),
     output_format: str = typer.Option(
         "markdown",
         "--format",
         "-f",
-        help="Output format: markdown (default) | ai-prompt | json.",
+        help="Output format: markdown (default) | ai-prompt | json | sarif.",
     ),
     exclude: list[str] | None = typer.Option(
         None,
@@ -142,15 +142,16 @@ def scan(
 ) -> None:
     """Scan a project for security vulnerabilities."""
     from scout import baseline as baseline_io
-    from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report
+    from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report, generate_sarif
     from scout.agents.scout_agent import run_scout
     from scout.config import load_config
     from scout.scanners import get_all_scanners
 
     fmt = output_format.lower()
-    if fmt not in {"markdown", "ai-prompt", "json"}:
+    if fmt not in {"markdown", "ai-prompt", "json", "sarif"}:
         console.print(
-            f"[bold red]Error:[/bold red] invalid --format '{output_format}'. Choose: markdown | ai-prompt | json."
+            f"[bold red]Error:[/bold red] invalid --format '{output_format}'. "
+            "Choose: markdown | ai-prompt | json | sarif."
         )
         raise typer.Exit(code=2)
 
@@ -183,14 +184,14 @@ def scan(
             console.print(f"[bold red]Error:[/bold red] {exc}")
             raise typer.Exit(code=2) from None
 
-    # `--format json` with no -o pipes clean JSON to stdout; decorative output
-    # then goes to stderr so the pipe stays machine-readable.
-    json_to_stdout = fmt == "json" and output is None
-    msg = Console(stderr=True) if json_to_stdout else console
+    # `--format json`/`--format sarif` with no -o pipe the document to stdout;
+    # decorative output then goes to stderr so the pipe stays machine-readable.
+    pipe_to_stdout = fmt in {"json", "sarif"} and output is None
+    msg = Console(stderr=True) if pipe_to_stdout else console
 
     msg.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
 
-    outcome = run_scout(path, config, quiet=json_to_stdout)
+    outcome = run_scout(path, config, quiet=pipe_to_stdout)
     findings = outcome.findings
     root = path if path.is_dir() else path.parent
 
@@ -226,16 +227,24 @@ def scan(
         if low:
             msg.print(f"  [blue]🔵 {low} low[/blue]")
     elif fmt == "markdown":
-        # Nothing to report — JSON/ai-prompt still emit a valid (empty) document.
+        # Nothing to report — json/sarif/ai-prompt still emit a valid (empty) document.
         msg.print("[bold green]No vulnerabilities found. Ship it![/bold green]\n")
         raise typer.Exit()
 
     if fmt == "json":
         text = generate_json(findings, output, project_path=path, files_scanned=outcome.files_scanned)
-        if json_to_stdout:
+        if pipe_to_stdout:
             print(text)
         else:
             msg.print(f"\n[bold green]JSON written to:[/bold green] {output}")
+        raise typer.Exit(code=exit_code)
+
+    if fmt == "sarif":
+        text = generate_sarif(findings, output, project_path=path, files_scanned=outcome.files_scanned)
+        if pipe_to_stdout:
+            print(text)
+        else:
+            msg.print(f"\n[bold green]SARIF written to:[/bold green] {output}")
         raise typer.Exit(code=exit_code)
 
     if fmt == "ai-prompt":

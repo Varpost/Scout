@@ -34,7 +34,7 @@ scout scan ./my-project --format ai-prompt
 
 ## Output Formats
 
-One scan, three views — choose with `--format` (`-f`):
+One scan, four views — choose with `--format` (`-f`):
 
 ```bash
 # Layer 1 — human-readable Markdown report (default)
@@ -49,9 +49,12 @@ scout scan ./my-app --format ai-prompt -o prompts.md
 scout scan ./my-app --format json               # prints JSON to stdout
 scout scan ./my-app --format json -o report.json
 scout scan ./my-app --format json | jq '.findings[]'
+
+# Layer 4 — SARIF 2.1.0 for GitHub Code Scanning (PR annotations)
+scout scan ./my-app --format sarif -o scout.sarif
 ```
 
-The same engine powers all three — Scout finds the problem; your own AI (which already knows your codebase) applies the fix.
+The same engine powers all of them — Scout finds the problem; your own AI (which already knows your codebase) applies the fix.
 
 ## Use as a CI Gate
 
@@ -61,6 +64,17 @@ The same engine powers all three — Scout finds the problem; your own AI (which
 scout scan . --fail-on high        # default — fail on HIGH or CRITICAL findings
 scout scan . --fail-on critical    # fail only on CRITICAL
 scout scan . --fail-on never       # report-only mode — always exit 0
+```
+
+To get findings annotated on pull requests via GitHub Code Scanning, upload the SARIF output (the job needs `security-events: write`):
+
+```yaml
+- run: |
+    pip install scout-security
+    scout scan . --no-ai --format sarif -o scout.sarif --fail-on never
+- uses: github/codeql-action/upload-sarif@v4
+  with:
+    sarif_file: scout.sarif
 ```
 
 ## Suppressing Findings
