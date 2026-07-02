@@ -66,7 +66,23 @@ scout scan . --fail-on critical    # fail only on CRITICAL
 scout scan . --fail-on never       # report-only mode — always exit 0
 ```
 
-To get findings annotated on pull requests via GitHub Code Scanning, upload the SARIF output (the job needs `security-events: write`):
+The GitHub Action wraps install + scan + SARIF upload, so findings show up as PR annotations via GitHub Code Scanning:
+
+```yaml
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Varpost/Scout@main   # pin a release tag once v0.1.5 ships
+        with:
+          fail-on: high            # also: path, format, upload-sarif
+```
+
+Prefer plain steps? The same thing by hand (the job still needs `security-events: write`):
 
 ```yaml
 - run: |
