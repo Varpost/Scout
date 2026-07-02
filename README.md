@@ -12,7 +12,7 @@
 
 AI coding assistants write insecure code constantly — hardcoded secrets, SQL injection, missing auth. Solo developers ship it because they don't have a security team.
 
-**Scout is that team.** Static analysis catches 80% of real issues instantly. No API keys, no config, no cost.
+**Scout is that team.** Static analysis catches the most common mistakes AI assistants make — leaked keys, string-built SQL, `shell=True`, missing security headers. No API keys, no config, no cost.
 
 ## Install
 
@@ -60,14 +60,14 @@ The same engine powers all three — Scout finds the problem; your own AI (which
 | `secrets` | AWS keys, GitHub tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
 | `injection` | SQL injection, command injection, eval(), XSS | CRITICAL |
 | `headers` | Missing helmet, wildcard CORS, no CSP | HIGH |
-| `deps` | Known vulnerabilities in pip/npm packages | HIGH |
+| `deps` | Known vulnerabilities in pinned pip dependencies (via OSV.dev) | HIGH |
 
 ## Example Output
 
 ```
 $ scout scan ./my-app
 
-Scout v0.1.0 scanning: ./my-app
+Scout v0.1.4 scanning: ./my-app
 
   Scanning 47 files...
 
