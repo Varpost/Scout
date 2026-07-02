@@ -45,6 +45,9 @@ dev = [
 
 [project.scripts]
 scout = "scout.cli:app"
+# NCC ScoutSuite also installs a `scout` command; whichever package is
+# installed last silently owns the name. `scoutsec` always works.
+scoutsec = "scout.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/Varpost/Scout"
