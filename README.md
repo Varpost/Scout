@@ -72,7 +72,26 @@ result = eval(trusted_expression)  # scout: ignore
 result = eval(trusted_expression)  # scout: ignore[injection]
 ```
 
-Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Project-level findings (npm dependency results, the app-wide CSRF check) have no meaningful line to annotate and can't be suppressed this way — per-scanner config and a baseline file are coming next.
+Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Project-level findings (npm dependency results, the app-wide CSRF check) have no meaningful line to annotate and can't be suppressed this way — turn the whole scanner off via `[tool.scout] scanners` (below), or wait for the baseline file (coming next).
+
+## Configuration
+
+Skip paths with `--exclude` (repeatable; relative to the scan root, globs allowed):
+
+```bash
+scout scan . --exclude tests/fixtures --exclude "*.min.js"
+```
+
+Or set project defaults in `pyproject.toml` — Scout reads `[tool.scout]` from the scanned project:
+
+```toml
+[tool.scout]
+exclude = ["tests/fixtures", "vendor"]   # paths or glob patterns to skip
+scanners = ["secrets", "injection"]      # run a subset: secrets, injection, headers, deps
+fail_on = "medium"                       # default threshold for --fail-on
+```
+
+CLI flags win: `--exclude` replaces the config list, and `--fail-on` overrides `fail_on`.
 
 ## What It Finds
 

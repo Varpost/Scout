@@ -88,8 +88,8 @@ jobs:
         run: ruff check scout/ --select S
 
       - name: Scout self-scan (dogfood, fails on HIGH+)
-        # Source tree only: tests/fixtures contains deliberate findings, and
-        # --exclude doesn't exist until T1.3 widens this to the whole repo.
+        # Whole repo. tests/ is excluded because fixtures AND scanner tests
+        # embed deliberate findings as inputs — that's what they test.
         run: |
           pip install -e .
-          scout scan scout/ --no-ai --fail-on HIGH
+          scout scan . --no-ai --exclude tests --fail-on HIGH

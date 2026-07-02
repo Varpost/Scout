@@ -48,5 +48,6 @@ Scout's core has minimal dependencies to reduce attack surface:
 - `python-dotenv` — Environment variable loading
 - `jinja2` — Report templating
 - `httpx` — HTTP client (OSV.dev dependency queries)
+- `tomli` — TOML parsing for `[tool.scout]` config (Python 3.10 only; 3.11+ uses stdlib `tomllib`)
 
 AI dependencies (`anthropic`, `openai`) are optional extras installed only when needed.

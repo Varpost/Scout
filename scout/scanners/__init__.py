@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from scout.scanners.base import BaseScanner
 
 _registry: list[type[BaseScanner]] = []
@@ -17,12 +20,54 @@ def register_scanner(cls: type[BaseScanner]) -> type[BaseScanner]:
     return cls
 
 
-def get_all_scanners() -> list[type[BaseScanner]]:
-    """Return all registered scanner classes."""
+def get_all_scanners(only: Sequence[str] | None = None) -> list[type[BaseScanner]]:
+    """Return registered scanner classes, optionally filtered by name.
+
+    Args:
+        only: Scanner names to keep (e.g. from ``[tool.scout] scanners``).
+            None returns every registered scanner.
+
+    Returns:
+        Scanner classes in registration order.
+
+    Raises:
+        ValueError: If ``only`` names a scanner that doesn't exist.
+    """
     # Import scanner modules to trigger registration  # noqa: I001
     from scout.scanners import deps, headers, injection, secrets  # noqa: F401
 
-    return list(_registry)
+    if only is None:
+        return list(_registry)
+    known = {cls.name for cls in _registry}
+    unknown = sorted(set(only) - known)
+    if unknown:
+        raise ValueError(f"unknown scanner(s): {', '.join(unknown)}. Available: {', '.join(sorted(known))}")
+    wanted = set(only)
+    return [cls for cls in _registry if cls.name in wanted]
+
+
+def _is_excluded(rel_path: str, exclude: Sequence[str]) -> bool:
+    """Check a root-relative POSIX path against exclude patterns.
+
+    A pattern excludes the path itself, anything under it as a directory
+    prefix, and any fnmatch glob match (e.g. ``*.min.js``).
+
+    Args:
+        rel_path: File path relative to the scan root, in POSIX form.
+        exclude: Patterns from ``--exclude`` / ``[tool.scout] exclude``.
+
+    Returns:
+        True if the file should be skipped.
+    """
+    for raw in exclude:
+        pattern = raw.replace("\\", "/").strip("/")
+        if not pattern:
+            continue
+        if rel_path == pattern or rel_path.startswith(pattern + "/"):
+            return True
+        if fnmatch(rel_path, pattern):
+            return True
+    return False
 
 
 def _is_security_relevant_filename(name: str) -> bool:
@@ -46,7 +91,11 @@ def _is_security_relevant_filename(name: str) -> bool:
     return lower.startswith("docker-compose")
 
 
-def collect_files(path: Path, extensions: set[str] | None = None) -> list[Path]:
+def collect_files(
+    path: Path,
+    extensions: set[str] | None = None,
+    exclude: Sequence[str] = (),
+) -> list[Path]:
     """Collect all scannable files in a directory tree.
 
     Files are matched by extension, plus a filename allowlist for
@@ -57,6 +106,10 @@ def collect_files(path: Path, extensions: set[str] | None = None) -> list[Path]:
         path: Root directory to scan.
         extensions: File extensions to include (e.g., {'.py', '.js'}).
                     If None, includes common source files.
+        exclude: Paths (relative to ``path``) or glob patterns to skip,
+                 e.g. ``["tests/fixtures", "*.min.js"]``. Ignored when
+                 ``path`` is a single file — an explicitly named file is
+                 always scanned.
 
     Returns:
         List of file paths.
@@ -120,7 +173,10 @@ def collect_files(path: Path, extensions: set[str] | None = None) -> list[Path]:
     for item in path.rglob("*"):
         if item.is_file() and (item.suffix.lower() in extensions or _is_security_relevant_filename(item.name)):
             # Skip files in ignored directories
-            if not any(part in skip_dirs for part in item.parts):
-                files.append(item)
+            if any(part in skip_dirs for part in item.parts):
+                continue
+            if exclude and _is_excluded(item.relative_to(path).as_posix(), exclude):
+                continue
+            files.append(item)
 
     return files
