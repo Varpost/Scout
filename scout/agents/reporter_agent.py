@@ -280,6 +280,114 @@ def generate_json(
     return text
 
 
+# GitHub Code Scanning displays "error" prominently on PRs; "note" stays quiet.
+_SARIF_LEVELS = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning", "LOW": "note"}
+# GitHub's severity badge/sort key (CVSS-like 0-10 string).
+_SARIF_SECURITY_SEVERITY = {"CRITICAL": "9.5", "HIGH": "8.0", "MEDIUM": "5.5", "LOW": "3.0"}
+
+
+def _sarif_uri(file: str, project_path: Path | None) -> str:
+    """Repo-relative POSIX URI for a finding's file (SARIF artifactLocation)."""
+    path = Path(file)
+    if project_path:
+        try:
+            path = path.relative_to(project_path)
+        except ValueError:
+            pass
+    return path.as_posix()
+
+
+def generate_sarif(
+    findings: list[Finding],
+    output_path: Path | None = None,
+    project_path: Path | None = None,
+    files_scanned: int | None = None,
+) -> str:
+    """Render findings as SARIF 2.1.0 for GitHub Code Scanning.
+
+    Args:
+        findings: Findings from the Scout agent.
+        output_path: If given, the SARIF is also written here. If None, the
+            document is only returned (e.g. for piping to stdout).
+        project_path: Root of the scanned project (URIs are made relative).
+        files_scanned: Number of files the scan actually covered.
+
+    Returns:
+        The SARIF document as a string.
+    """
+    rules: list[dict[str, object]] = []
+    rule_index: dict[str, int] = {}
+    results: list[dict[str, object]] = []
+
+    for finding in findings:
+        fid = _finding_id(finding)
+        if fid not in rule_index:
+            rule_index[fid] = len(rules)
+            rule: dict[str, object] = {
+                "id": fid,
+                "name": finding.title,
+                "shortDescription": {"text": finding.title},
+                "fullDescription": {"text": finding.description},
+                "defaultConfiguration": {"level": _SARIF_LEVELS.get(finding.severity, "warning")},
+                "properties": {
+                    "tags": ["security"],
+                    "security-severity": _SARIF_SECURITY_SEVERITY.get(finding.severity, "5.5"),
+                },
+            }
+            if finding.fix_summary:
+                rule["help"] = {"text": finding.fix_summary}
+            references = _references_for(finding)
+            if references:
+                rule["helpUri"] = references[0]
+            rules.append(rule)
+
+        results.append(
+            {
+                "ruleId": fid,
+                "ruleIndex": rule_index[fid],
+                "level": _SARIF_LEVELS.get(finding.severity, "warning"),
+                "message": {"text": f"{finding.title}: {finding.description}"},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {
+                                "uri": _sarif_uri(finding.file, project_path),
+                                "uriBaseId": "%SRCROOT%",
+                            },
+                            # Project-level findings carry synthetic anchors —
+                            # SARIF requires startLine >= 1.
+                            "region": {"startLine": max(1, finding.line)},
+                        }
+                    }
+                ],
+            }
+        )
+
+    run: dict[str, object] = {
+        "tool": {
+            "driver": {
+                "name": "Scout",
+                "informationUri": "https://github.com/Varpost/Scout",
+                "version": __version__,
+                "rules": rules,
+            }
+        },
+        "results": results,
+    }
+    if files_scanned is not None:
+        run["properties"] = {"filesScanned": files_scanned}
+
+    payload = {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [run],
+    }
+    text = json.dumps(payload, indent=2, ensure_ascii=False)
+    if output_path:
+        output_path.write_text(text + "\n", encoding="utf-8")
+    return text
+
+
 def generate_ai_prompts(
     findings: list[Finding],
     output_path: Path | None = None,

@@ -1,12 +1,14 @@
-"""Tests for the three output layers (markdown / ai-prompt / json) — SCOUT_SPEC §4."""
+"""Tests for the output layers (markdown / ai-prompt / json / sarif) — SCOUT_SPEC §4."""
 
 import json
 from pathlib import Path
 
+from scout import __version__
 from scout.agents.reporter_agent import (
     generate_ai_prompts,
     generate_json,
     generate_report,
+    generate_sarif,
 )
 from scout.models import Finding
 
@@ -104,6 +106,93 @@ def test_json_relativizes_paths(tmp_path: Path):
     )
     data = json.loads(generate_json([finding], project_path=tmp_path))
     assert data["findings"][0]["file"] in ("pkg/a.py", "pkg\\a.py")
+
+
+# --- Layer 4: SARIF 2.1.0 --------------------------------------------------
+
+
+def test_sarif_document_shape():
+    data = json.loads(generate_sarif(_sample_findings()))
+
+    assert data["version"] == "2.1.0"
+    assert "sarif-schema-2.1.0" in data["$schema"]
+    driver = data["runs"][0]["tool"]["driver"]
+    assert driver["name"] == "Scout"
+    assert driver["version"] == __version__
+
+    results = data["runs"][0]["results"]
+    assert len(results) == 2
+    rule_ids = {rule["id"] for rule in driver["rules"]}
+    for result in results:
+        assert result["ruleId"] in rule_ids
+        assert driver["rules"][result["ruleIndex"]]["id"] == result["ruleId"]
+        region = result["locations"][0]["physicalLocation"]["region"]
+        assert region["startLine"] >= 1
+
+
+def test_sarif_severity_maps_to_levels():
+    data = json.loads(generate_sarif(_sample_findings()))
+    levels = [r["level"] for r in data["runs"][0]["results"]]
+    assert levels == ["error", "error"]  # CRITICAL and HIGH both surface as error
+
+    low = _sample_findings()[0]
+    low.severity = "LOW"
+    medium = _sample_findings()[1]
+    medium.severity = "MEDIUM"
+    data = json.loads(generate_sarif([low, medium]))
+    assert [r["level"] for r in data["runs"][0]["results"]] == ["note", "warning"]
+
+
+def test_sarif_rules_carry_github_security_severity():
+    data = json.loads(generate_sarif(_sample_findings()))
+    for rule in data["runs"][0]["tool"]["driver"]["rules"]:
+        assert "security-severity" in rule["properties"]
+        assert "security" in rule["properties"]["tags"]
+
+
+def test_sarif_dedupes_rules_but_keeps_all_results():
+    finding = _sample_findings()[0]
+    twin = _sample_findings()[0]
+    twin.line = 99
+    data = json.loads(generate_sarif([finding, twin]))
+    assert len(data["runs"][0]["tool"]["driver"]["rules"]) == 1
+    assert len(data["runs"][0]["results"]) == 2
+
+
+def test_sarif_uris_are_relative_posix(tmp_path: Path):
+    finding = Finding(
+        file=str(tmp_path / "pkg" / "a.py"),
+        line=3,
+        severity="LOW",
+        title="x",
+        description="d",
+        scanner="secrets",
+    )
+    data = json.loads(generate_sarif([finding], project_path=tmp_path))
+    location = data["runs"][0]["results"][0]["locations"][0]["physicalLocation"]
+    assert location["artifactLocation"]["uri"] == "pkg/a.py"
+    assert location["artifactLocation"]["uriBaseId"] == "%SRCROOT%"
+
+
+def test_sarif_clamps_synthetic_line_anchors():
+    # npm/project-level findings use line=0; SARIF requires startLine >= 1.
+    finding = _sample_findings()[0]
+    finding.line = 0
+    data = json.loads(generate_sarif([finding]))
+    region = data["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["region"]
+    assert region["startLine"] == 1
+
+
+def test_sarif_empty_findings_is_valid():
+    data = json.loads(generate_sarif([]))
+    assert data["runs"][0]["results"] == []
+    assert data["runs"][0]["tool"]["driver"]["rules"] == []
+
+
+def test_sarif_writes_file(tmp_path: Path):
+    out = tmp_path / "scout.sarif"
+    returned = generate_sarif(_sample_findings(), out)
+    assert json.loads(out.read_text(encoding="utf-8")) == json.loads(returned)
 
 
 # --- Layer 2: AI-ready prompts -------------------------------------------

@@ -93,3 +93,32 @@ jobs:
         run: |
           pip install -e .
           scout scan . --no-ai --exclude tests --fail-on HIGH
+
+  sarif:
+    name: SARIF Upload (Code Scanning)
+    runs-on: ubuntu-latest
+    # The workflow-level `contents: read` would block the upload — this job
+    # needs its own security-events grant.
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Generate SARIF
+        # Gating is the security job's dogfood step; this job only proves the
+        # SARIF output uploads cleanly, so it never fails on findings.
+        run: |
+          pip install -e .
+          scout scan . --no-ai --exclude tests --fail-on never --format sarif -o scout.sarif
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: scout.sarif
+          category: scout
