@@ -121,6 +121,18 @@ def scan(
         "--exclude",
         help="Path or glob (relative to the scan root) to skip; repeatable. Replaces [tool.scout] exclude.",
     ),
+    baseline: Path | None = typer.Option(
+        None,
+        "--baseline",
+        help="Baseline file of accepted findings to filter out (write one with --write-baseline). "
+        "Only findings not in the baseline are reported and gate the exit code.",
+    ),
+    write_baseline: bool = typer.Option(
+        False,
+        "--write-baseline",
+        help="Accept all current findings: write them to the baseline file (--baseline path, or "
+        ".scout-baseline.json in the scan root) and exit 0 without writing a report.",
+    ),
     fail_on: str | None = typer.Option(
         None,
         "--fail-on",
@@ -129,6 +141,7 @@ def scan(
     ),
 ) -> None:
     """Scan a project for security vulnerabilities."""
+    from scout import baseline as baseline_io
     from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report
     from scout.agents.scout_agent import run_scout
     from scout.config import load_config
@@ -161,6 +174,15 @@ def scan(
         console.print(f"[bold red]Error:[/bold red] {exc}")
         raise typer.Exit(code=2) from None
 
+    # Load the baseline before scanning so a bad file fails fast.
+    known_baseline: set[baseline_io.BaselineKey] | None = None
+    if baseline is not None and not write_baseline:
+        try:
+            known_baseline = baseline_io.load_baseline(baseline)
+        except ValueError as exc:
+            console.print(f"[bold red]Error:[/bold red] {exc}")
+            raise typer.Exit(code=2) from None
+
     # `--format json` with no -o pipes clean JSON to stdout; decorative output
     # then goes to stderr so the pipe stays machine-readable.
     json_to_stdout = fmt == "json" and output is None
@@ -170,6 +192,22 @@ def scan(
 
     outcome = run_scout(path, config, quiet=json_to_stdout)
     findings = outcome.findings
+    root = path if path.is_dir() else path.parent
+
+    if write_baseline:
+        baseline_path = baseline if baseline is not None else root / baseline_io.DEFAULT_BASELINE_NAME
+        try:
+            count = baseline_io.write_baseline(findings, root, baseline_path)
+        except OSError as exc:
+            msg.print(f"[bold red]Error:[/bold red] cannot write baseline: {exc}")
+            raise typer.Exit(code=2) from None
+        msg.print(f"[bold green]Baseline written:[/bold green] {baseline_path} ({count} finding(s) accepted)")
+        msg.print("[dim]Commit this file; scans with --baseline then report only new findings.[/dim]\n")
+        raise typer.Exit()
+
+    if known_baseline is not None:
+        findings = baseline_io.filter_baselined(findings, root, known_baseline)
+
     exit_code = _exit_code_for(findings, config.fail_on)
 
     if findings:

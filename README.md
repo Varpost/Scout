@@ -72,7 +72,7 @@ result = eval(trusted_expression)  # scout: ignore
 result = eval(trusted_expression)  # scout: ignore[injection]
 ```
 
-Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Project-level findings (npm dependency results, the app-wide CSRF check) have no meaningful line to annotate and can't be suppressed this way — turn the whole scanner off via `[tool.scout] scanners` (below), or wait for the baseline file (coming next).
+Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Project-level findings (npm dependency results, the app-wide CSRF check) have no meaningful line to annotate and can't be suppressed this way — turn the whole scanner off via `[tool.scout] scanners` (below), or accept them into a baseline (below).
 
 ## Configuration
 
@@ -92,6 +92,17 @@ fail_on = "medium"                       # default threshold for --fail-on
 ```
 
 CLI flags win: `--exclude` replaces the config list, and `--fail-on` overrides `fail_on`.
+
+## Adopting Scout on an Existing Codebase (Baseline)
+
+Don't want to fix years of findings before turning the CI gate on? Accept the current state, then fail only on new findings:
+
+```bash
+scout scan . --write-baseline                   # accept current findings → .scout-baseline.json
+scout scan . --baseline .scout-baseline.json   # report and fail only on NEW findings
+```
+
+Commit `.scout-baseline.json`. Finding identity is content-based — the rule, the file, and a hash of the flagged line, deliberately **no line numbers** — so baselined findings stay accepted when unrelated edits shift them up or down a file. Changing the flagged line itself brings the finding back for review.
 
 ## What It Finds
 
