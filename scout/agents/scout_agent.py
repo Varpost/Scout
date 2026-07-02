@@ -90,7 +90,7 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutco
         ScanOutcome with deduplicated findings (sorted by severity) and the
         number of files scanned.
     """
-    files = collect_files(path)
+    files = collect_files(path, exclude=config.exclude)
     if not files:
         if not quiet:
             console.print("[yellow]No scannable files found.[/yellow]")
@@ -100,7 +100,7 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutco
         console.print(f"  Scanning [bold]{len(files)}[/bold] files...\n")
 
     all_findings: list[Finding] = []
-    scanners = get_all_scanners()
+    scanners = get_all_scanners(config.scanners)
 
     if quiet:
         for scanner_cls in scanners:

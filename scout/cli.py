@@ -9,10 +9,10 @@ import typer
 from rich.console import Console
 
 from scout import __version__
+from scout.config import FAIL_ON_CHOICES as _FAIL_ON_CHOICES
 from scout.models import Finding
 
 _SEVERITY_RANK = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
-_FAIL_ON_CHOICES = ("critical", "high", "medium", "low", "never")
 
 
 def _exit_code_for(findings: list[Finding], fail_on: str) -> int:
@@ -116,16 +116,23 @@ def scan(
         "-f",
         help="Output format: markdown (default) | ai-prompt | json.",
     ),
-    fail_on: str = typer.Option(
-        "high",
+    exclude: list[str] | None = typer.Option(
+        None,
+        "--exclude",
+        help="Path or glob (relative to the scan root) to skip; repeatable. Replaces [tool.scout] exclude.",
+    ),
+    fail_on: str | None = typer.Option(
+        None,
         "--fail-on",
-        help="Exit 1 when findings at or above this severity exist: critical | high | medium | low | never.",
+        help="Exit 1 when findings at or above this severity exist: critical | high | medium | low | never. "
+        "Default: high, or [tool.scout] fail_on.",
     ),
 ) -> None:
     """Scan a project for security vulnerabilities."""
     from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report
     from scout.agents.scout_agent import run_scout
     from scout.config import load_config
+    from scout.scanners import get_all_scanners
 
     fmt = output_format.lower()
     if fmt not in {"markdown", "ai-prompt", "json"}:
@@ -134,18 +141,25 @@ def scan(
         )
         raise typer.Exit(code=2)
 
-    fail_level = fail_on.lower()
-    if fail_level not in _FAIL_ON_CHOICES:
+    if fail_on is not None and fail_on.lower() not in _FAIL_ON_CHOICES:
         console.print(
             f"[bold red]Error:[/bold red] invalid --fail-on '{fail_on}'. "
             "Choose: critical | high | medium | low | never."
         )
         raise typer.Exit(code=2)
 
-    config = load_config(
-        ai_provider="none" if no_ai else model,
-        ollama_model=ollama_model,
-    )
+    try:
+        config = load_config(
+            ai_provider="none" if no_ai else model,
+            ollama_model=ollama_model,
+            project_path=path,
+            cli_exclude=list(exclude) if exclude else None,
+            cli_fail_on=fail_on,
+        )
+        get_all_scanners(config.scanners)  # fail fast on unknown scanner names
+    except ValueError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(code=2) from None
 
     # `--format json` with no -o pipes clean JSON to stdout; decorative output
     # then goes to stderr so the pipe stays machine-readable.
@@ -156,7 +170,7 @@ def scan(
 
     outcome = run_scout(path, config, quiet=json_to_stdout)
     findings = outcome.findings
-    exit_code = _exit_code_for(findings, fail_level)
+    exit_code = _exit_code_for(findings, config.fail_on)
 
     if findings:
         critical = sum(1 for f in findings if f.severity == "CRITICAL")

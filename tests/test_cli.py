@@ -101,3 +101,60 @@ def test_json_format_respects_fail_on(tmp_path):
 def test_invalid_fail_on_exits_2(tmp_path):
     result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--fail-on", "sometimes"])
     assert result.exit_code == 2
+
+
+# --- --exclude and [tool.scout] config ---------------------------------------
+
+
+def test_exclude_flag_removes_findings(tmp_path):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "sample.py").write_text("result = eval(user_input)\n", encoding="utf-8")
+
+    failing = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    assert failing.exit_code == 1
+    passing = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--exclude", "tests"])
+    assert passing.exit_code == 0
+
+
+def test_config_scanners_runs_only_named_scanner(tmp_path):
+    import json
+
+    (tmp_path / "pyproject.toml").write_text('[tool.scout]\nscanners = ["secrets"]\n', encoding="utf-8")
+    (tmp_path / "app.py").write_text("result = eval(user_input)\n", encoding="utf-8")
+    (tmp_path / ".env").write_text('AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"\n', encoding="utf-8")
+
+    out = tmp_path / "report.json"
+    result = runner.invoke(
+        app,
+        ["scan", str(tmp_path), "--no-ai", "--format", "json", "-o", str(out), "--fail-on", "never"],
+    )
+    assert result.exit_code == 0
+    findings = json.loads(out.read_text(encoding="utf-8"))["findings"]
+    assert findings, "the secrets scanner should still report the AWS key"
+    assert {f["scanner"] for f in findings} == {"secrets"}
+
+
+def test_config_fail_on_is_used_and_cli_flag_overrides_it(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[tool.scout]\nfail_on = "never"\n', encoding="utf-8")
+    (tmp_path / "app.py").write_text('os.system("ls " + user_input)\n', encoding="utf-8")
+
+    from_config = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    assert from_config.exit_code == 0
+    overridden = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--fail-on", "high"])
+    assert overridden.exit_code == 1
+
+
+def test_invalid_config_fail_on_exits_2(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[tool.scout]\nfail_on = "sometimes"\n', encoding="utf-8")
+    (tmp_path / "app.py").write_text("print('hi')\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    assert result.exit_code == 2
+
+
+def test_unknown_scanner_in_config_exits_2(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[tool.scout]\nscanners = ["nope"]\n', encoding="utf-8")
+    (tmp_path / "app.py").write_text("print('hi')\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    assert result.exit_code == 2
