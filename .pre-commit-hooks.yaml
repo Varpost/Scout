@@ -1,0 +1,8 @@
+# Consumed by pre-commit (https://pre-commit.com) — see README "Pre-commit Hook".
+- id: scout
+  name: scout security scan
+  description: Static security scan — secrets, injection, missing headers, vulnerable deps.
+  entry: scout scan . --no-ai
+  args: ["--fail-on", "high"]
+  language: python
+  pass_filenames: false
