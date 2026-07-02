@@ -121,7 +121,8 @@ def scan(
 
     msg.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
 
-    findings = run_scout(path, config, quiet=json_to_stdout)
+    outcome = run_scout(path, config, quiet=json_to_stdout)
+    findings = outcome.findings
 
     if findings:
         critical = sum(1 for f in findings if f.severity == "CRITICAL")
@@ -144,7 +145,7 @@ def scan(
         raise typer.Exit()
 
     if fmt == "json":
-        text = generate_json(findings, output, project_path=path)
+        text = generate_json(findings, output, project_path=path, files_scanned=outcome.files_scanned)
         if json_to_stdout:
             print(text)
         else:
@@ -160,7 +161,7 @@ def scan(
 
     # markdown (default)
     report_path = output or path / "security-report.md"
-    generate_report(findings, report_path, project_path=path)
+    generate_report(findings, report_path, project_path=path, files_scanned=outcome.files_scanned)
     msg.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
     msg.print("[dim]Next: open the report, then run `scout fix --phase 1`[/dim]\n")
 
