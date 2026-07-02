@@ -117,7 +117,7 @@ result = eval(trusted_expression)  # scout: ignore
 result = eval(trusted_expression)  # scout: ignore[injection]
 ```
 
-Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Project-level findings (npm dependency results, the app-wide CSRF check) have no meaningful line to annotate and can't be suppressed this way — turn the whole scanner off via `[tool.scout] scanners` (below), or accept them into a baseline (below).
+Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Findings that can't carry an inline comment — the app-wide CSRF check has no meaningful line, and lockfile findings live in generated JSON — are handled by turning the scanner off via `[tool.scout] scanners` (below) or accepting them into a baseline (below).
 
 ## Configuration
 
@@ -156,7 +156,7 @@ Commit `.scout-baseline.json`. Finding identity is content-based — the rule, t
 | `secrets` | AWS keys, GitHub tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
 | `injection` | SQL injection, command injection, eval(), XSS | CRITICAL |
 | `headers` | Missing helmet, wildcard CORS, no CSP | HIGH |
-| `deps` | Known vulnerabilities in pinned pip dependencies (via OSV.dev) | HIGH |
+| `deps` | Known vulnerabilities in pip + npm dependencies (via OSV.dev) | HIGH |
 
 ## Example Output
 
