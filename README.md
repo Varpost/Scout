@@ -77,7 +77,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@main   # pin a release tag once v0.1.5 ships
+      - uses: Varpost/Scout@v0.1.5
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -101,7 +101,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.4        # use the latest tag
+    rev: v0.1.5        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -163,7 +163,7 @@ Commit `.scout-baseline.json`. Finding identity is content-based — the rule, t
 ```
 $ scout scan ./my-app
 
-Scout v0.1.4 scanning: ./my-app
+Scout v0.1.5 scanning: ./my-app
 
   Scanning 47 files...
 
