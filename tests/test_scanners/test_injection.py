@@ -73,3 +73,41 @@ def test_dynamic_shell_true_is_critical():
     ):
         findings = scanner.scan_file(Path("app.py"), line)
         assert any(f.severity == "CRITICAL" and "shell=True" in f.title for f in findings), line
+
+
+def test_fixture_command_injection_is_detected():
+    # Regression: the exec(`ping -c 1 ${host}`) in Scout's own fixture
+    # (has_injection.js:31-37) was missed by every pattern.
+    scanner = InjectionScanner()
+    content = FIXTURES.joinpath("has_injection.js").read_text()
+    findings = scanner.scan_file(FIXTURES / "has_injection.js", content)
+    assert any("exec()" in f.title for f in findings), [f.title for f in findings]
+
+
+def test_template_literal_sql_is_detected():
+    scanner = InjectionScanner()
+    content = "db.query(`SELECT * FROM users WHERE id = ${userId}`);\n"
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert any(f.title == "SQL template literal" for f in findings)
+
+
+def test_regex_exec_is_not_flagged():
+    # RegExp.prototype.exec is everywhere in JS — dotted calls must not match.
+    scanner = InjectionScanner()
+    content = "const m = pattern.exec(`${input}`);\n"
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert not any("exec" in f.title.lower() for f in findings), [f.title for f in findings]
+
+
+def test_exec_with_concatenation_is_detected():
+    scanner = InjectionScanner()
+    content = 'exec("ping -c 1 " + host);\n'
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert any("exec()" in f.title for f in findings)
+
+
+def test_spawn_shell_true_is_detected():
+    scanner = InjectionScanner()
+    content = "const p = spawn(cmd, { shell: true });\n"
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert any("spawn" in f.title for f in findings)

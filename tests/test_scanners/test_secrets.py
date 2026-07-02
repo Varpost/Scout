@@ -132,3 +132,50 @@ def test_findings_have_correct_structure():
         assert f.description
         assert f.scanner == "secrets"
         assert f.fix_phase == 1
+
+
+# --- Unquoted KEY=VALUE secrets (.env and friends) -------------------------
+
+
+def test_unquoted_env_secret_is_detected():
+    scanner = SecretsScanner()
+    content = "DEBUG=true\nPASSWORD=supersecretvalue123\n"
+    findings = scanner.scan_file(Path(".env"), content)
+    unquoted = [f for f in findings if "Unquoted" in f.title]
+    assert unquoted, [f.title for f in findings]
+    assert unquoted[0].line == 2
+
+
+def test_unquoted_pattern_is_gated_to_env_like_files():
+    # Ordinary source code must not get the env-file treatment.
+    scanner = SecretsScanner()
+    content = "PASSWORD=supersecretvalue123\n"
+    findings = scanner.scan_file(Path("app.py"), content)
+    assert not any("Unquoted" in f.title for f in findings)
+
+
+def test_unquoted_placeholders_are_not_flagged():
+    scanner = SecretsScanner()
+    content = "PASSWORD=changeme123\nAPI_KEY=${REAL_KEY}\n"
+    assert scanner.scan_file(Path(".env"), content) == []
+
+
+def test_compose_environment_list_entry_is_detected():
+    scanner = SecretsScanner()
+    content = "services:\n  db:\n    environment:\n      - DB_PASSWORD=supersecretvalue123\n"
+    findings = scanner.scan_file(Path("docker-compose.yml"), content)
+    assert any("Unquoted" in f.title for f in findings)
+
+
+def test_env_secret_detected_end_to_end(tmp_path):
+    # The whole pipeline: .env is collected (T0.6) and its unquoted value
+    # is detected (T0.7), landing in the generated report.
+    from typer.testing import CliRunner
+
+    from scout.cli import app
+
+    (tmp_path / ".env").write_text("PASSWORD=supersecretvalue123\n", encoding="utf-8")
+    result = CliRunner().invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    assert result.exit_code == 0
+    report = (tmp_path / "security-report.md").read_text(encoding="utf-8")
+    assert "Unquoted secret assignment detected" in report
