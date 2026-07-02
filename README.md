@@ -77,6 +77,21 @@ To get findings annotated on pull requests via GitHub Code Scanning, upload the 
     sarif_file: scout.sarif
 ```
 
+## Pre-commit Hook
+
+Catch findings before they're ever committed:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/Varpost/Scout
+    rev: v0.1.4        # use the latest tag
+    hooks:
+      - id: scout
+```
+
+The hook runs `scout scan . --no-ai --fail-on high` from your repo root on every commit, so your `[tool.scout]` config applies. Tune the threshold with `args: ["--fail-on", "critical"]`. When it fails, Scout writes `security-report.md` with the details — worth adding to your `.gitignore`.
+
 ## Suppressing Findings
 
 Silence a false positive with a trailing comment on the flagged line:
