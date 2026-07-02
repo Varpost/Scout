@@ -92,6 +92,33 @@ def test_real_password_is_still_flagged():
     assert any("Password" in f.title for f in findings)
 
 
+def test_dev_default_database_url_is_downgraded_to_low():
+    # Regression: docker-compose default creds guaranteed a CRITICAL on scan #1.
+    scanner = SecretsScanner()
+    content = 'DATABASE_URL = "postgres://postgres:postgres@db:5432/app"'
+    findings = scanner.scan_file(Path("docker-compose.yml"), content)
+    db = [f for f in findings if "Database URL" in f.title]
+    assert db, "dev-default URL should still be reported (downgraded, not hidden)"
+    assert db[0].severity == "LOW"
+    assert "local development" in db[0].description
+
+
+def test_localhost_database_url_is_downgraded_to_low():
+    scanner = SecretsScanner()
+    content = 'url = "mysql://appuser:s0meRealish9@localhost/dev"'
+    findings = scanner.scan_file(Path("settings.py"), content)
+    db = [f for f in findings if "Database URL" in f.title]
+    assert db and db[0].severity == "LOW"
+
+
+def test_production_looking_database_url_stays_critical():
+    scanner = SecretsScanner()
+    content = 'DATABASE_URL = "postgres://svc:Xk29fjs8Hqz@db-prod-7.internal:5432/app"'
+    findings = scanner.scan_file(Path("settings.py"), content)
+    db = [f for f in findings if "Database URL" in f.title]
+    assert db and db[0].severity == "CRITICAL"
+
+
 def test_findings_have_correct_structure():
     scanner = SecretsScanner()
     content = FIXTURES.joinpath("has_secrets.py").read_text()

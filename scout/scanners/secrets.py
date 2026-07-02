@@ -86,7 +86,7 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
     (
         "Database URL with Password",
         re.compile(
-            r"""(?:mongodb|postgres|mysql|redis|amqp)(?:\+\w+)?://[^:]+:([^@\s'"]{8,})@""",
+            r"""(?:mongodb|postgres|mysql|redis|amqp)(?:\+\w+)?://[^:]+:([^@\s'"]{8,})@([\w.-]*)""",
             re.IGNORECASE,
         ),
         "CRITICAL",
@@ -201,6 +201,45 @@ PLACEHOLDER_FILTERED = {
 }
 
 
+# Development-default database credentials and hosts (docker-compose service
+# names, loopback). These are real matches but almost never production
+# credentials — downgraded to LOW instead of suppressed, so the report still
+# mentions them without burying real leaks.
+DEV_DB_PASSWORDS = {
+    "postgres",
+    "password",
+    "password1",
+    "password123",
+    "rootpassword",
+    "devpassword",
+    "mysqlpassword",
+}
+
+DEV_DB_HOSTS = {
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",  # noqa: S104 — hostname allowlist entry, not a bind address
+    "db",
+    "database",
+    "postgres",
+    "postgresql",
+    "mysql",
+    "mariadb",
+    "redis",
+    "mongo",
+    "mongodb",
+    "rabbitmq",
+    "host.docker.internal",
+}
+
+
+def _is_local_dev_database_url(match: re.Match[str]) -> bool:
+    """True when a matched DB URL looks like a local development default."""
+    password = (match.group(1) or "").lower()
+    host = (match.group(2) or "").lower()
+    return password in DEV_DB_PASSWORDS or host in DEV_DB_HOSTS
+
+
 def _is_probably_not_a_secret(value: str) -> bool:
     """Heuristic to reject placeholder/prose values captured by a secret regex.
 
@@ -257,13 +296,25 @@ class SecretsScanner(BaseScanner):
                 end = min(len(lines), line_start + 1)
                 snippet = "\n".join(lines[start:end])
 
+                # Dev-default DB URLs (postgres:postgres@db etc.) are real
+                # matches but not production leaks — downgrade, don't hide.
+                finding_severity = severity
+                finding_description = description
+                if pattern_name == "Database URL with Password" and _is_local_dev_database_url(match):
+                    finding_severity = "LOW"
+                    finding_description = (
+                        description + " This one looks like a local development default "
+                        "(dev-standard password or local/compose hostname), so it's "
+                        "reported as LOW — make sure it never ships to production."
+                    )
+
                 findings.append(
                     Finding(
                         file=str(file_path),
                         line=line_start,
-                        severity=severity,
+                        severity=finding_severity,
                         title=f"{pattern_name} detected",
-                        description=description,
+                        description=finding_description,
                         scanner=self.name,
                         snippet=snippet,
                         fix_phase=1,

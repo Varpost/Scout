@@ -37,10 +37,19 @@ SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
 # Command Injection patterns
 CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     (
-        "shell=True with variable",
-        re.compile(r"""subprocess\.\w+\(.*shell\s*=\s*True""", re.IGNORECASE),
-        "subprocess called with shell=True. If any part of the command comes from user input, "
-        "attackers can inject additional commands (e.g., `; rm -rf /`).",
+        "shell=True with dynamic command",
+        # The command must show evidence of dynamism (f-string, variable/call,
+        # concatenation, %-formatting, .format) — a fixed string literal with
+        # shell=True is reported separately at LOW, not CRITICAL.
+        re.compile(
+            r"""subprocess\.\w+\(\s*(?:(?:f|rf|fr)['"]|[A-Za-z_][\w.\[\]]*\s*[,(]"""
+            r"""|(?:r|b|rb|br)?['"][^'"]*['"]\s*(?:[+%]|\.format\())"""
+            r""".*?shell\s*=\s*True""",
+            re.IGNORECASE,
+        ),
+        "subprocess called with shell=True and a command that isn't a fixed string. If any part "
+        "of the command comes from user input, attackers can inject additional commands "
+        "(e.g., `; rm -rf /`).",
     ),
     (
         "os.system() call",
@@ -50,9 +59,26 @@ CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ),
     (
         "eval() usage",
-        re.compile(r"""(?<!\w)eval\s*\("""),
+        # (?<![\w.]) — a leading dot means a method call like PyTorch's
+        # model.eval(), which has nothing to do with Python's eval().
+        re.compile(r"""(?<![\w.])eval\s*\("""),
         "eval() executes arbitrary code. If the input can be influenced by a user in any way, "
         "they can execute any code on your server.",
+    ),
+]
+
+# Informational: shell=True on a constant string is a bad habit, not an
+# exploitable injection — reported LOW so the first scan of ordinary code
+# isn't a wall of false CRITICALs.
+CMD_PATTERNS_INFO: list[tuple[str, re.Pattern[str], str]] = [
+    (
+        "shell=True with constant command",
+        re.compile(
+            r"""subprocess\.\w+\(\s*(?:r|b|rb|br)?['"][^'"]*['"]\s*,.*?shell\s*=\s*True""",
+            re.IGNORECASE,
+        ),
+        "subprocess called with shell=True on a fixed string. As written there is no injection "
+        "risk, but shell=True becomes dangerous the moment any variable joins the command.",
     ),
 ]
 
@@ -93,6 +119,7 @@ class InjectionScanner(BaseScanner):
         all_patterns = [
             (SQL_PATTERNS, "CRITICAL", 4),  # (patterns, severity, fix_phase)
             (CMD_PATTERNS, "CRITICAL", 4),
+            (CMD_PATTERNS_INFO, "LOW", 1),
             (XSS_PATTERNS, "HIGH", 4),
         ]
 
