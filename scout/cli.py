@@ -9,6 +9,26 @@ import typer
 from rich.console import Console
 
 from scout import __version__
+from scout.models import Finding
+
+_SEVERITY_RANK = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+_FAIL_ON_CHOICES = ("critical", "high", "medium", "low", "never")
+
+
+def _exit_code_for(findings: list[Finding], fail_on: str) -> int:
+    """Exit 1 when any finding is at or above the --fail-on severity.
+
+    Args:
+        findings: Findings from the scan.
+        fail_on: Lowercase threshold ('critical' … 'low') or 'never'.
+
+    Returns:
+        Process exit code (0 or 1).
+    """
+    if fail_on == "never":
+        return 0
+    threshold = _SEVERITY_RANK[fail_on.upper()]
+    return 1 if any(_SEVERITY_RANK.get(f.severity, 99) <= threshold for f in findings) else 0
 
 
 def _force_utf8_output() -> None:
@@ -96,6 +116,11 @@ def scan(
         "-f",
         help="Output format: markdown (default) | ai-prompt | json.",
     ),
+    fail_on: str = typer.Option(
+        "high",
+        "--fail-on",
+        help="Exit 1 when findings at or above this severity exist: critical | high | medium | low | never.",
+    ),
 ) -> None:
     """Scan a project for security vulnerabilities."""
     from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report
@@ -106,6 +131,14 @@ def scan(
     if fmt not in {"markdown", "ai-prompt", "json"}:
         console.print(
             f"[bold red]Error:[/bold red] invalid --format '{output_format}'. Choose: markdown | ai-prompt | json."
+        )
+        raise typer.Exit(code=2)
+
+    fail_level = fail_on.lower()
+    if fail_level not in _FAIL_ON_CHOICES:
+        console.print(
+            f"[bold red]Error:[/bold red] invalid --fail-on '{fail_on}'. "
+            "Choose: critical | high | medium | low | never."
         )
         raise typer.Exit(code=2)
 
@@ -123,6 +156,7 @@ def scan(
 
     outcome = run_scout(path, config, quiet=json_to_stdout)
     findings = outcome.findings
+    exit_code = _exit_code_for(findings, fail_level)
 
     if findings:
         critical = sum(1 for f in findings if f.severity == "CRITICAL")
@@ -150,20 +184,21 @@ def scan(
             print(text)
         else:
             msg.print(f"\n[bold green]JSON written to:[/bold green] {output}")
-        raise typer.Exit()
+        raise typer.Exit(code=exit_code)
 
     if fmt == "ai-prompt":
         prompts_path = output or path / "security-prompts.md"
         generate_ai_prompts(findings, prompts_path, project_path=path)
         msg.print(f"\n[bold green]AI fix prompts written to:[/bold green] {prompts_path}")
         msg.print("[dim]Paste each block into your AI assistant (Cursor, Claude, Copilot, …).[/dim]\n")
-        raise typer.Exit()
+        raise typer.Exit(code=exit_code)
 
     # markdown (default)
     report_path = output or path / "security-report.md"
     generate_report(findings, report_path, project_path=path, files_scanned=outcome.files_scanned)
     msg.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
     msg.print("[dim]Next: run `scout scan --format ai-prompt` and paste the prompts into your AI assistant.[/dim]\n")
+    raise typer.Exit(code=exit_code)
 
 
 # Hidden until implemented (T3.4 decides implement-vs-delete): advertising

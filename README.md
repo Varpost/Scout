@@ -53,6 +53,16 @@ scout scan ./my-app --format json | jq '.findings[]'
 
 The same engine powers all three — Scout finds the problem; your own AI (which already knows your codebase) applies the fix.
 
+## Use as a CI Gate
+
+`scout scan` exits **1** when findings at or above `--fail-on` (default: `high`) exist, so your pipeline fails on real problems:
+
+```bash
+scout scan . --fail-on high        # default — fail on HIGH or CRITICAL findings
+scout scan . --fail-on critical    # fail only on CRITICAL
+scout scan . --fail-on never       # report-only mode — always exit 0
+```
+
 ## What It Finds
 
 | Scanner | Detects | Severity |
