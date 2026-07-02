@@ -77,9 +77,6 @@ ignore = ["S101"]
 # Typer's documented pattern is `Argument(...)` / `Option(...)` in defaults.
 # B008 would force a refactor that goes against the framework's own examples.
 "scout/cli.py" = ["B008"]
-# The deps scanner intentionally invokes `pip` and `npm` by name — absolute
-# paths vary per virtualenv / install. Args are list-form (no shell injection).
-"scout/scanners/deps.py" = ["S603", "S607"]
 # Test fixtures intentionally contain hardcoded "secrets" and unused imports —
 # they exist precisely to be detected by Scout's own scanners.
 "tests/fixtures/*" = ["S105", "S106", "S107", "F401"]
