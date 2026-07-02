@@ -11,7 +11,7 @@
 If you discover a security vulnerability in Scout, please report it responsibly:
 
 1. **Do NOT** open a public GitHub issue for security vulnerabilities.
-2. Email: **<tejaswiraj@gmail.com>**
+2. Email: **<tejaswirajmgr@gmail.com>**
 3. Or use GitHub's [private vulnerability reporting](https://github.com/Varpost/Scout/security/advisories/new).
 
 ### What to include
