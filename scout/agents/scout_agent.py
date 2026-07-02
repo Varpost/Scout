@@ -129,16 +129,30 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutco
     severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
     all_findings.sort(key=lambda f: severity_order.get(f.severity, 99))
 
-    # Deduplicate (same file + same line + same scanner)
-    seen: set[tuple[str, int, str]] = set()
+    return ScanOutcome(findings=_dedupe_findings(all_findings), files_scanned=len(files))
+
+
+def _dedupe_findings(findings: list[Finding]) -> list[Finding]:
+    """Collapse exact duplicates, preserving order.
+
+    The key includes the title: two different patterns hitting the same line
+    are both real findings — a (file, line, scanner) key used to silently
+    drop the second one.
+
+    Args:
+        findings: Findings sorted by severity.
+
+    Returns:
+        Findings with exact duplicates removed.
+    """
+    seen: set[tuple[str, int, str, str]] = set()
     unique: list[Finding] = []
-    for finding in all_findings:
-        key = (finding.file, finding.line, finding.scanner)
+    for finding in findings:
+        key = (finding.file, finding.line, finding.scanner, finding.title)
         if key not in seen:
             seen.add(key)
             unique.append(finding)
-
-    return ScanOutcome(findings=unique, files_scanned=len(files))
+    return unique
 
 
 def _run_ai_pass(findings: list[Finding], config: ScoutConfig, quiet: bool = False) -> list[Finding]:
