@@ -180,5 +180,7 @@ class HeadersScanner(BaseScanner):
                 snippet=_comment(framework_file, "No CSRF middleware found"),
                 fix_phase=2,
                 fix_summary=HEADER_CHECKS[2][4],
+                # line=1 is a synthetic anchor — exempt from line suppression.
+                project_level=True,
             )
         ]

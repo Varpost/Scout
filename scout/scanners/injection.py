@@ -47,6 +47,8 @@ SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
 ]
 
 # Command Injection patterns
+# (Some titles/descriptions below literally contain the code they detect —
+# their trailing `scout: ignore` comments keep Scout's CI self-scan clean.)
 CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     (
         "shell=True with dynamic command",
@@ -64,17 +66,17 @@ CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "(e.g., `; rm -rf /`).",
     ),
     (
-        "os.system() call",
+        "os.system() call",  # scout: ignore
         re.compile(r"""os\.system\s*\("""),
-        "os.system() executes commands in a shell. If the command string includes any user input, "
+        "os.system() executes commands in a shell. If the command string includes any user input, "  # scout: ignore
         "it's a command injection vulnerability.",
     ),
     (
-        "eval() usage",
+        "eval() usage",  # scout: ignore
         # (?<![\w.]) — a leading dot means a method call like PyTorch's
         # model.eval(), which has nothing to do with Python's eval().
         re.compile(r"""(?<![\w.])eval\s*\("""),
-        "eval() executes arbitrary code. If the input can be influenced by a user in any way, "
+        "eval() executes arbitrary code. If the input can be influenced by a user in any way, "  # scout: ignore
         "they can execute any code on your server.",
     ),
     (
@@ -130,9 +132,9 @@ XSS_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "that steal cookies, redirect users, or deface your app.",
     ),
     (
-        "document.write()",
+        "document.write()",  # scout: ignore
         re.compile(r"""document\.write\s*\("""),
-        "document.write() with dynamic content is an XSS vector. "
+        "document.write() with dynamic content is an XSS vector. "  # scout: ignore
         "Attackers can inject script tags through user-controlled input.",
     ),
     (

@@ -63,6 +63,17 @@ scout scan . --fail-on critical    # fail only on CRITICAL
 scout scan . --fail-on never       # report-only mode — always exit 0
 ```
 
+## Suppressing Findings
+
+Silence a false positive with a trailing comment on the flagged line:
+
+```python
+result = eval(trusted_expression)  # scout: ignore
+result = eval(trusted_expression)  # scout: ignore[injection]
+```
+
+Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Project-level findings (npm dependency results, the app-wide CSRF check) have no meaningful line to annotate and can't be suppressed this way — per-scanner config and a baseline file are coming next.
+
 ## What It Finds
 
 | Scanner | Detects | Severity |

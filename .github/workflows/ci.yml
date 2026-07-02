@@ -87,8 +87,9 @@ jobs:
       - name: Ruff security rules
         run: ruff check scout/ --select S
 
-      - name: Check for secrets in code
+      - name: Scout self-scan (dogfood, fails on HIGH+)
+        # Source tree only: tests/fixtures contains deliberate findings, and
+        # --exclude doesn't exist until T1.3 widens this to the whole repo.
         run: |
-          # Use Scout itself to scan for secrets
           pip install -e .
-          scout scan . --no-ai || true
+          scout scan scout/ --no-ai --fail-on HIGH
