@@ -1,0 +1,81 @@
+name: "Scout Security Scan"
+description: "Find hardcoded secrets, injection flaws, missing security headers, and vulnerable dependencies. Free, static, no API keys."
+author: "Tejaswi Raj"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  path:
+    description: "Path to scan, relative to the workspace."
+    required: false
+    default: "."
+  fail-on:
+    description: "Fail the action when findings at or above this severity exist: critical | high | medium | low | never."
+    required: false
+    default: "high"
+  format:
+    description: "Output format: sarif | json | markdown."
+    required: false
+    default: "sarif"
+  upload-sarif:
+    description: "Upload results to GitHub Code Scanning (job needs `security-events: write`). Only applies when format is sarif."
+    required: false
+    default: "true"
+  install:
+    description: "pip requirement to install (advanced — this repo's CI dogfoods a source checkout with '.')."
+    required: false
+    default: "scout-security"
+
+outputs:
+  sarif-file:
+    description: "Path to the generated SARIF file (when format is sarif)."
+    value: ${{ steps.scan.outputs.sarif-file }}
+  exit-code:
+    description: "Scout's exit code: 0 clean or below threshold, 1 findings at/above threshold."
+    value: ${{ steps.scan.outputs.exit-code }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+
+    - name: Install Scout
+      shell: bash
+      run: pip install "${{ inputs.install }}"
+
+    - name: Run Scout
+      id: scan
+      shell: bash
+      # The threshold is enforced in the last step instead of here — a scan
+      # that exits 1 must not skip the SARIF upload.
+      run: |
+        set +e
+        if [ "${{ inputs.format }}" = "sarif" ]; then
+          scout scan "${{ inputs.path }}" --no-ai --format sarif -o scout.sarif --fail-on "${{ inputs.fail-on }}"
+          code=$?
+          echo "sarif-file=scout.sarif" >> "$GITHUB_OUTPUT"
+        else
+          scout scan "${{ inputs.path }}" --no-ai --format "${{ inputs.format }}" --fail-on "${{ inputs.fail-on }}"
+          code=$?
+        fi
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - name: Upload SARIF to GitHub Code Scanning
+      if: ${{ inputs.format == 'sarif' && inputs.upload-sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: scout.sarif
+        category: scout
+
+    - name: Enforce fail-on threshold
+      shell: bash
+      run: |
+        code="${{ steps.scan.outputs.exit-code }}"
+        if [ "$code" != "0" ]; then
+          echo "Scout found findings at or above '${{ inputs.fail-on }}' (exit $code)."
+          exit "$code"
+        fi
