@@ -141,3 +141,15 @@ def test_markdown_still_works(tmp_path: Path):
     text = out.read_text(encoding="utf-8")
     assert "# Security Report" in text
     assert "AWS Access Key detected" in text
+
+
+def test_markdown_shows_real_files_scanned_count(tmp_path: Path):
+    # Regression: the header used to render an em-dash placeholder.
+    out = tmp_path / "report.md"
+    generate_report(_sample_findings(), out, project_path=None, files_scanned=47)
+    assert "**Files scanned:** 47" in out.read_text(encoding="utf-8")
+
+
+def test_json_includes_files_scanned():
+    data = json.loads(generate_json(_sample_findings(), files_scanned=3))
+    assert data["files_scanned"] == 3
