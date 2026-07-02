@@ -67,7 +67,7 @@ The same engine powers all three — Scout finds the problem; your own AI (which
 ```
 $ scout scan ./my-app
 
-Scout v0.1.0 scanning: ./my-app
+Scout v0.1.4 scanning: ./my-app
 
   Scanning 47 files...
 
