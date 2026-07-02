@@ -20,6 +20,8 @@ AI coding assistants write insecure code constantly — hardcoded secrets, SQL i
 pip install scout-security
 ```
 
+> **Using NCC ScoutSuite too?** It also installs a `scout` command, and whichever package you installed last owns the name. Scout additionally installs **`scoutsec`** — same tool, collision-proof name: `scoutsec scan ./my-project`.
+
 ## Usage
 
 ```bash

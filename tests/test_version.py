@@ -25,3 +25,11 @@ def test_docs_example_versions_are_current():
         text = (REPO_ROOT / doc).read_text(encoding="utf-8")
         for shown in re.findall(r"Scout v(\d+\.\d+\.\d+)", text):
             assert shown == __version__, f"{doc} shows stale version {shown}"
+
+
+def test_console_scripts_include_scoutsec_alias():
+    # NCC ScoutSuite also installs a `scout` command (last install wins), so
+    # the collision-proof `scoutsec` alias must always exist alongside it.
+    pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert re.search(r'^scout = "scout\.cli:app"$', pyproject, flags=re.MULTILINE)
+    assert re.search(r'^scoutsec = "scout\.cli:app"$', pyproject, flags=re.MULTILINE)
