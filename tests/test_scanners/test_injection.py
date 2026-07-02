@@ -38,3 +38,38 @@ def test_injection_findings_are_critical():
     for f in sql_findings:
         assert f.severity == "CRITICAL"
         assert f.fix_phase == 4
+
+
+def test_model_eval_is_not_flagged():
+    # Regression: PyTorch's model.eval() is a method call, not Python eval().
+    scanner = InjectionScanner()
+    content = "model.eval()\nself.encoder.eval()\n"
+    findings = scanner.scan_file(Path("train.py"), content)
+    assert findings == [], [f.title for f in findings]
+
+
+def test_bare_eval_is_still_flagged():
+    scanner = InjectionScanner()
+    findings = scanner.scan_file(Path("app.py"), "result = eval(user_input)\n")
+    assert any("eval" in f.title for f in findings)
+
+
+def test_constant_shell_true_is_low_not_critical():
+    # Regression: a fixed command string can't be injected into.
+    scanner = InjectionScanner()
+    findings = scanner.scan_file(Path("app.py"), 'subprocess.run("ls -la", shell=True)\n')
+    assert findings, "constant shell=True should still be reported"
+    assert all(f.severity == "LOW" for f in findings), [(f.title, f.severity) for f in findings]
+
+
+def test_dynamic_shell_true_is_critical():
+    scanner = InjectionScanner()
+    for line in (
+        'subprocess.run(f"ls {directory}", shell=True)\n',
+        "subprocess.run(cmd, shell=True)\n",
+        'subprocess.run("ls " + user_dir, shell=True)\n',
+        'subprocess.run("ls %s" % user_dir, shell=True)\n',
+        'subprocess.run("ls {}".format(user_dir), shell=True)\n',
+    ):
+        findings = scanner.scan_file(Path("app.py"), line)
+        assert any(f.severity == "CRITICAL" and "shell=True" in f.title for f in findings), line
