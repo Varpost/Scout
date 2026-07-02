@@ -25,8 +25,33 @@ def get_all_scanners() -> list[type[BaseScanner]]:
     return list(_registry)
 
 
+def _is_security_relevant_filename(name: str) -> bool:
+    """Match security-relevant files that a suffix check can't catch.
+
+    ``Path('.env').suffix == ''`` and Dockerfiles have no extension at all,
+    so a suffix-only check silently skips the #1 secret-leak vector.
+
+    Args:
+        name: Bare filename (no directory part).
+
+    Returns:
+        True for ``.env``/``.env.*``, ``Dockerfile``/``Dockerfile.*``, and
+        ``docker-compose*`` files.
+    """
+    lower = name.lower()
+    if lower == ".env" or lower.startswith(".env."):
+        return True
+    if lower == "dockerfile" or lower.startswith("dockerfile."):
+        return True
+    return lower.startswith("docker-compose")
+
+
 def collect_files(path: Path, extensions: set[str] | None = None) -> list[Path]:
     """Collect all scannable files in a directory tree.
+
+    Files are matched by extension, plus a filename allowlist for
+    security-relevant files without a usable suffix (`.env*`, `Dockerfile*`,
+    `docker-compose*`).
 
     Args:
         path: Root directory to scan.
@@ -90,10 +115,10 @@ def collect_files(path: Path, extensions: set[str] | None = None) -> list[Path]:
     }
 
     if path.is_file():
-        return [path] if path.suffix.lower() in extensions else []
+        return [path] if path.suffix.lower() in extensions or _is_security_relevant_filename(path.name) else []
 
     for item in path.rglob("*"):
-        if item.is_file() and item.suffix.lower() in extensions:
+        if item.is_file() and (item.suffix.lower() in extensions or _is_security_relevant_filename(item.name)):
             # Skip files in ignored directories
             if not any(part in skip_dirs for part in item.parts):
                 files.append(item)
