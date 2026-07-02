@@ -30,6 +30,10 @@ class Finding:
     fix_summary: str = ""
     references: list[str] = field(default_factory=list)
     ai_confirmed: bool | None = None
+    # Project-level findings (npm dependency results, the app-wide CSRF
+    # check) have synthetic line anchors, so line-based `scout: ignore`
+    # suppression must never apply to them.
+    project_level: bool = False
 
 
 @dataclass
