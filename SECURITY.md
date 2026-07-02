@@ -46,7 +46,7 @@ Scout's core has minimal dependencies to reduce attack surface:
 - `typer` — CLI framework
 - `rich` — Terminal output
 - `python-dotenv` — Environment variable loading
-- `gitpython` — Git operations
 - `jinja2` — Report templating
+- `httpx` — HTTP client (OSV.dev dependency queries)
 
 AI dependencies (`anthropic`, `openai`) are optional extras installed only when needed.
