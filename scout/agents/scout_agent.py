@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from rich.console import Console
@@ -14,7 +15,20 @@ from scout.scanners import collect_files, get_all_scanners
 console = Console()
 
 
-def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> list[Finding]:
+@dataclass
+class ScanOutcome:
+    """Combined result of a scan run.
+
+    Attributes:
+        findings: Deduplicated findings, sorted by severity.
+        files_scanned: Number of files that were collected and scanned.
+    """
+
+    findings: list[Finding]
+    files_scanned: int
+
+
+def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutcome:
     """Run all scanners against the target path.
 
     Args:
@@ -24,13 +38,14 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> list[Find
             machine-readable output to stdout).
 
     Returns:
-        Combined list of findings from all scanners, sorted by severity.
+        ScanOutcome with deduplicated findings (sorted by severity) and the
+        number of files scanned.
     """
     files = collect_files(path)
     if not files:
         if not quiet:
             console.print("[yellow]No scannable files found.[/yellow]")
-        return []
+        return ScanOutcome(findings=[], files_scanned=0)
 
     if not quiet:
         console.print(f"  Scanning [bold]{len(files)}[/bold] files...\n")
@@ -71,7 +86,7 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> list[Find
             seen.add(key)
             unique.append(finding)
 
-    return unique
+    return ScanOutcome(findings=unique, files_scanned=len(files))
 
 
 def _run_ai_pass(findings: list[Finding], config: ScoutConfig, quiet: bool = False) -> list[Finding]:

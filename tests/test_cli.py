@@ -27,3 +27,14 @@ def test_scan_emits_emoji_summary_without_crashing(tmp_path):
     target.write_text('os.system("ls " + user_input)\n', encoding="utf-8")
     result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
     assert result.exit_code == 0
+
+
+def test_report_shows_real_scanned_file_count(tmp_path):
+    # Regression: the report header rendered an em-dash placeholder instead
+    # of the actual number of files scanned.
+    target = tmp_path / "app.py"
+    target.write_text('os.system("ls " + user_input)\n', encoding="utf-8")
+    result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
+    assert result.exit_code == 0
+    report = (tmp_path / "security-report.md").read_text(encoding="utf-8")
+    assert "**Files scanned:** 1" in report
