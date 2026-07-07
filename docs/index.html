@@ -284,6 +284,28 @@ scout scan ./my-app --format json -o report.json
 scout scan ./my-app --format json | jq '.findings[]'</code></pre>
     </section>
 
+    <!-- Verify loop -->
+    <section id="ai-assistant">
+        <h2>Using Scout with Your AI Assistant</h2>
+        <p class="subtitle-muted">The loop: <strong>Scout finds deterministically &rarr; your AI fixes &rarr; Scout re-verifies.</strong> Same scan, same findings, zero tokens every pass &mdash; re-checking a fix never costs inference. Pick the surface that matches how you work.</p>
+
+        <h3>1. You + a chat assistant (Claude, Cursor, Copilot Chat)</h3>
+        <p class="text-muted-large">Generate self-contained fix prompts, paste one into your assistant, then rescan to confirm the finding is gone.</p>
+        <pre><code>scout scan . --format ai-prompt   # writes security-prompts.md
+# paste a prompt into your assistant, let it fix, then:
+scout scan .                      # clean? the loop is closed</code></pre>
+
+        <h3>2. An agent that calls Scout itself (Claude Code, Cursor Agent)</h3>
+        <p class="text-muted-large">Run Scout as an <a href="https://modelcontextprotocol.io">MCP</a> server your agent invokes in a scan &rarr; fix &rarr; rescan loop &mdash; the deterministic, zero-token verifier inside the loop.</p>
+        <pre><code>pip install "scout-security[mcp]"
+claude mcp add scout -- scout-mcp</code></pre>
+        <p class="text-muted-large">Then tell the agent: <em>"Scan this project with Scout, fix every finding, then scan again &mdash; repeat until it reports zero."</em> It calls <code>scan_path</code>, applies fixes, and calls again.</p>
+
+        <h3>3. CI / pre-commit (make the loop mandatory)</h3>
+        <p class="text-muted-large">Turn the loop into a gate &mdash; the build fails until findings are fixed.</p>
+        <pre><code>scout scan . --fail-on high       # exit 1 on HIGH+ findings</code></pre>
+    </section>
+
     <!-- Features -->
     <section>
         <h2>Features</h2>

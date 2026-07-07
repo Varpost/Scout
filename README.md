@@ -243,6 +243,40 @@ Zero-install with uv: use `"command": "uvx", "args": ["--from", "scout-security[
 
 It exposes one tool — **`scan_path(path)`** — returning the same Layer-3 JSON as `--format json` (findings with file, line, severity, stable id, explanation, and fix guidance). Point the agent's fix loop at it and call again to confirm the issue is gone.
 
+## Using Scout with Your AI Assistant
+
+The whole idea in one line: **Scout finds deterministically → your AI fixes → Scout re-verifies.** Same scan, same findings, zero tokens on every pass — so re-checking a fix never costs inference. Pick the surface that matches how you work; all three run the same engine.
+
+### 1. You + a chat assistant (Claude, Cursor, Copilot Chat)
+
+```bash
+scout scan . --format ai-prompt      # writes security-prompts.md
+```
+
+Open `security-prompts.md` and paste a block into your assistant. Each one is self-contained — the finding, the fix, and an instruction to sweep the rest of your code for the same class of issue. After it edits, re-verify:
+
+```bash
+scout scan .                         # clean? the loop is closed
+```
+
+### 2. An agent that calls Scout itself (Claude Code, Cursor Agent)
+
+Wire up the [MCP server](#mcp-server-agent-verifier), then hand the agent the loop:
+
+> Scan this project with Scout, fix every finding, then scan again — repeat until it reports zero.
+
+The agent calls `scan_path`, applies fixes, and calls again. Scout is the deterministic, zero-token verifier *inside* the loop, so each re-check is free.
+
+### 3. CI / pre-commit (make the loop mandatory)
+
+Turn the loop into a gate — the build fails until findings are fixed:
+
+```bash
+scout scan . --fail-on high          # exit 1 on HIGH+ findings
+```
+
+See [Use as a CI Gate](#use-as-a-ci-gate) for the GitHub Action and [Pre-commit Hook](#pre-commit-hook) to catch findings before they're committed. Adopting on an existing repo? A [baseline](#adopting-scout-on-an-existing-codebase-baseline) accepts today's findings and fails only on new ones.
+
 ## Add a Custom Scanner
 
 ```python
