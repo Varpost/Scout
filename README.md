@@ -182,9 +182,26 @@ The report includes:
 - Exact fix instructions for each issue
 - Phased remediation plan (zero-risk fixes first)
 
-## Roadmap: AI Confirmation Pass (not yet implemented)
+## Optional: AI Confirmation Pass
 
-The CLI reserves `--model` / `--ollama-model` / `--no-ai` flags for a planned optional pass that double-checks findings with an AI provider (Anthropic, OpenAI, or local Ollama) to cut false positives further. **It is not implemented yet** — today every scan is 100% static: deterministic, offline, zero tokens. When it ships, it will remain optional and off by default; the core scan will never require an API key.
+**The core scan is always static, deterministic, offline, and zero-token — same scan, same findings, no API key.** That is the default and it never changes.
+
+If you want an extra false-positive filter, Scout can optionally send *only the flagged snippet* (never whole files) of each heuristic finding to an AI provider, which can **downgrade** its severity or **dismiss** it as a false positive. Dependency (OSV) and project-level findings are deterministic facts and are never second-guessed. Any provider error leaves findings untouched — the pass fails open, so it can never hide a real issue.
+
+It is **off by default**. Enable it per run:
+
+```bash
+# Anthropic (needs ANTHROPIC_API_KEY) — uses the cheap Haiku tier by default
+scout scan . --model anthropic
+
+# OpenAI (needs OPENAI_API_KEY)
+scout scan . --model openai
+
+# Local Ollama (no key, no cloud) — nothing leaves your machine
+scout scan . --model ollama --ollama-model llama3
+```
+
+Provider resolution is `--model` > `SCOUT_AI_PROVIDER` env > `none`. Override the model per provider with `SCOUT_AI_MODEL`. `--no-ai` forces the pass off regardless of config. Install the SDKs with `pip install "scout-security[ai]"` (Ollama needs no extra).
 
 ## Add a Custom Scanner
 

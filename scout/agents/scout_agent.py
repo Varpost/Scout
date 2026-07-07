@@ -11,7 +11,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from scout.agents.reporter_agent import _finding_id
 from scout.config import ScoutConfig
-from scout.models import Finding, severity_rank
+from scout.models import Finding, Severity, severity_rank
 from scout.scanners import collect_files, get_all_scanners
 
 console = Console()
@@ -154,13 +154,70 @@ def _dedupe_findings(findings: list[Finding]) -> list[Finding]:
     return unique
 
 
-def _run_ai_pass(findings: list[Finding], config: ScoutConfig, quiet: bool = False) -> list[Finding]:
-    """Send flagged snippets to AI for confirmation and severity rating.
+_VALID_SEVERITIES = {s.value for s in Severity}
 
-    Only sends snippets — never full files. Each call is under 2000 tokens.
+
+def _ai_reviewable(finding: Finding) -> bool:
+    """True when a snippet-only AI reviewer can meaningfully judge a finding.
+
+    Excludes project-level checks (synthetic anchors, app-wide) and dependency
+    findings (deterministic OSV advisory data, not a heuristic pattern match) —
+    a reviewer that only sees a snippet cannot fairly confirm or dismiss those,
+    and must never dismiss a real CVE it never got to look at.
     """
-    # TODO: Implement AI confirmation when ai/client.py is ready
-    # For now, return findings as-is (static scan is already useful)
+    return bool(finding.snippet) and not finding.project_level and finding.scanner != "deps"
+
+
+def _run_ai_pass(findings: list[Finding], config: ScoutConfig, quiet: bool = False) -> list[Finding]:
+    """Confirm heuristic findings with the configured AI provider.
+
+    Sends only the flagged snippet (never whole files) for each pattern-matched
+    finding and applies the verdict: drop dismissed findings, apply a returned
+    severity when it is a downgrade (the AI may lower severity but never
+    escalate it), and mark survivors ``ai_confirmed``. Any provider or parse
+    error leaves the finding untouched — failing open, so an API hiccup can
+    never silently hide a real finding.
+
+    Args:
+        findings: Post-suppression findings.
+        config: Runtime config with the resolved AI provider and keys.
+        quiet: Suppress the progress line when piping machine-readable output.
+
+    Returns:
+        Confirmed and downgraded findings, with dismissed ones removed.
+    """
+    from scout.ai.client import AIClient
+
+    client = AIClient(config)
     if not quiet:
-        console.print("  [dim]AI pass: not yet implemented (static results only)[/dim]")
-    return findings
+        count = sum(1 for f in findings if _ai_reviewable(f))
+        if count:
+            console.print(f"  [dim]AI pass: confirming {count} finding(s) via {config.ai_provider}...[/dim]")
+
+    kept: list[Finding] = []
+    for finding in findings:
+        if not _ai_reviewable(finding):
+            kept.append(finding)
+            continue
+        response = client.confirm_finding(
+            file=finding.file,
+            lines=str(finding.line),
+            issue_type=_finding_id(finding),
+            code=finding.snippet,
+        )
+        verdict = response.parsed
+        if response.error or verdict is None:
+            kept.append(finding)  # fail open on any provider/parse failure
+            continue
+        if verdict.get("confirmed") is False:
+            continue  # AI dismissed it as a false positive
+        finding.ai_confirmed = True
+        severity = verdict.get("severity")
+        if (
+            isinstance(severity, str)
+            and severity.upper() in _VALID_SEVERITIES
+            and severity_rank(severity.upper()) >= severity_rank(finding.severity)
+        ):
+            finding.severity = severity.upper()  # downgrade only
+        kept.append(finding)
+    return kept
