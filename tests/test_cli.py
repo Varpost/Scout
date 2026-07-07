@@ -40,14 +40,14 @@ def test_report_shows_real_scanned_file_count(tmp_path):
     assert "**Files scanned:** 1" in report
 
 
-def test_stub_commands_hidden_from_help():
-    # fix/validate/report are unimplemented stubs — advertising them in
-    # --help funnels users into "Coming soon" dead ends.
-    result = runner.invoke(app, ["--help"])
-    assert "Scan a project" in result.stdout
-    assert "Apply fixes for a specific phase" not in result.stdout
-    assert "Re-scan changed files and run tests" not in result.stdout
-    assert "Re-generate the report from last scan" not in result.stdout
+def test_stub_commands_removed():
+    # fix/validate/report were "Coming soon" stubs for 3 releases (T3.4:
+    # deleted, not implemented — the ai-prompt/MCP handoff covers fixing).
+    # scan is the only command; the removed ones are unknown to the CLI.
+    help_result = runner.invoke(app, ["--help"])
+    assert "Scan a project" in help_result.stdout
+    for stub in ("fix", "validate", "report"):
+        assert runner.invoke(app, [stub]).exit_code != 0
 
 
 def test_scan_output_does_not_advertise_stub_commands(tmp_path):
