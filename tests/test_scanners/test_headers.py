@@ -95,3 +95,75 @@ def test_wildcard_cors_is_flagged_with_real_line(tmp_path: Path):
 def test_non_web_files_are_skipped(tmp_path: Path):
     script = _write(tmp_path / "tool.py", "print('no framework here')\n")
     assert HeadersScanner().scan_file(script, script.read_text(encoding="utf-8")) == []
+
+
+def test_flask_without_talisman_is_flagged(tmp_path: Path):
+    app = _write(
+        tmp_path / "app.py",
+        "from flask import Flask\napp = Flask(__name__)\n@app.route('/')\ndef home():\n    return 'hi'\n",
+    )
+    findings = HeadersScanner().scan([app])
+    hdr = [f for f in findings if "security headers" in f.title.lower()]
+    assert len(hdr) == 1
+    assert hdr[0].severity == "MEDIUM"
+    assert hdr[0].line == 2  # anchored to the Flask(...) line, not a synthetic 1
+    assert "Talisman" in hdr[0].fix_summary  # plain-English, actionable fix
+
+
+def test_flask_with_talisman_is_clean(tmp_path: Path):
+    app = _write(
+        tmp_path / "app.py",
+        "from flask import Flask\nfrom flask_talisman import Talisman\napp = Flask(__name__)\nTalisman(app)\n",
+    )
+    findings = HeadersScanner().scan([app])
+    assert not any("security headers" in f.title.lower() for f in findings)
+
+
+def test_fastapi_without_middleware_is_flagged(tmp_path: Path):
+    app = _write(
+        tmp_path / "main.py",
+        "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/')\ndef root():\n    return {}\n",
+    )
+    findings = HeadersScanner().scan([app])
+    mw = [f for f in findings if "security middleware" in f.title.lower()]
+    assert len(mw) == 1
+    assert mw[0].severity == "LOW"
+
+
+def test_fastapi_with_middleware_is_clean(tmp_path: Path):
+    app = _write(
+        tmp_path / "main.py",
+        "from fastapi import FastAPI\n"
+        "from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware\n"
+        "app = FastAPI()\napp.add_middleware(HTTPSRedirectMiddleware)\n",
+    )
+    findings = HeadersScanner().scan([app])
+    assert not any("security middleware" in f.title.lower() for f in findings)
+
+
+def test_django_settings_missing_hardening_is_flagged(tmp_path: Path):
+    settings = _write(
+        tmp_path / "settings.py",
+        "from pathlib import Path\n"
+        "INSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n]\n"
+        "MIDDLEWARE = ['django.middleware.security.SecurityMiddleware']\n"
+        "DEBUG = False\n",
+    )
+    findings = HeadersScanner().scan([settings])
+    django = [f for f in findings if "Django" in f.title]
+    assert len(django) == 1
+    assert "SECURE_SSL_REDIRECT" in django[0].fix_summary
+
+
+def test_django_settings_hardened_is_clean(tmp_path: Path):
+    settings = _write(
+        tmp_path / "settings.py",
+        "INSTALLED_APPS = ['django.contrib.admin']\nSECURE_SSL_REDIRECT = True\nSECURE_HSTS_SECONDS = 31536000\n",
+    )
+    findings = HeadersScanner().scan([settings])
+    assert not any("Django" in f.title for f in findings)
+
+
+def test_safe_app_fixture_stays_zero_fp():
+    safe = Path(__file__).parent.parent / "fixtures" / "safe_app.py"
+    assert HeadersScanner().scan([safe]) == []
