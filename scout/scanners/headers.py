@@ -31,11 +31,44 @@ SESSION_INDICATORS = re.compile(
 # Presence of any CSRF protection.
 CSRF_PRESENT = re.compile(r"csrf|csurf|CSRFProtect|csrf_protect", re.IGNORECASE)
 
+# Framework app instantiation — a concrete app to harden (not just an import).
+FLASK_APP = re.compile(r"\bFlask\s*\(")
+FASTAPI_APP = re.compile(r"\bFastAPI\s*\(")
+
+# Django settings-module fingerprint — settings.py often never imports django.
+DJANGO_SETTINGS = re.compile(r"^\s*INSTALLED_APPS\s*=", re.MULTILINE)
+DJANGO_CONTRIB = re.compile(r"""['"]django\.(?:contrib|middleware)""")
+DJANGO_HARDENED = re.compile(r"SECURE_SSL_REDIRECT|SECURE_HSTS_SECONDS")
+
+# Evidence the app already ships security headers — the Flask/FastAPI escape
+# hatch, so a hardened app isn't flagged (keeps the false-positive rate down).
+SECURITY_HEADERS_PRESENT = re.compile(
+    r"Talisman|flask_talisman|Strict-Transport-Security|Content-Security-Policy|"
+    r"X-Frame-Options|X-Content-Type-Options",
+    re.IGNORECASE,
+)
+FASTAPI_SECURITY = re.compile(
+    r"add_middleware|HTTPSRedirectMiddleware|TrustedHostMiddleware|"
+    r"import\s+secure|from\s+secure|Strict-Transport-Security|Content-Security-Policy",
+    re.IGNORECASE,
+)
+
 
 def _comment(file_path: Path, text: str) -> str:
     """Format a placeholder snippet using the file's comment style."""
     hash_style = file_path.suffix.lower() in {".py", ".rb", ".sh", ".bash", ".yml", ".yaml", ".tf"}
     return f"# {text}" if hash_style else f"// {text}"
+
+
+def _line_of(content: str, pos: int) -> int:
+    """1-based line number of a character offset in ``content``."""
+    return content[:pos].count("\n") + 1
+
+
+def _context(content: str, line_num: int) -> str:
+    """A few lines of context around a 1-based line number (for the snippet)."""
+    lines = content.splitlines()
+    return "\n".join(lines[max(0, line_num - 2) : min(len(lines), line_num + 1)])
 
 
 # Security middleware / header checks
@@ -82,17 +115,19 @@ class HeadersScanner(BaseScanner):
     description = "Finds missing security headers, CORS issues, and middleware gaps"
 
     def scan_file(self, file_path: Path, content: str) -> list[Finding]:
-        """Per-file header checks (Helmet, wildcard CORS).
+        """Per-file header checks (Helmet/Talisman/middleware, CORS, Django settings).
 
         CSRF is handled once per project in ``scan`` — it's an app-level
         concern, not a per-file one.
         """
-        findings: list[Finding] = []
+        # Django settings hardening runs regardless of the web-app gate below:
+        # a settings module often never imports django itself.
+        findings: list[Finding] = self._check_django_settings(file_path, content)
 
         # Only scan files that look like web app entry points
         is_web_app = any(pattern.search(content) for pattern in FRAMEWORK_INDICATORS.values())
         if not is_web_app:
-            return []
+            return findings
 
         # Check for Express without Helmet
         if FRAMEWORK_INDICATORS["express"].search(content):
@@ -111,15 +146,59 @@ class HeadersScanner(BaseScanner):
                     )
                 )
 
+        # Flask app without security headers (Flask-Talisman is the Helmet analog)
+        flask_app = FLASK_APP.search(content)
+        if flask_app and not SECURITY_HEADERS_PRESENT.search(content):
+            line_num = _line_of(content, flask_app.start())
+            findings.append(
+                Finding(
+                    file=str(file_path),
+                    line=line_num,
+                    severity="MEDIUM",
+                    title="Flask app without security headers",
+                    description=(
+                        "Flask sets no security headers on its own and no Flask-Talisman "
+                        "(or manual HSTS/CSP/X-Frame-Options) was found. That leaves the app "
+                        "open to clickjacking, protocol downgrade, and MIME-sniffing."
+                    ),
+                    scanner=self.name,
+                    snippet=_context(content, line_num),
+                    fix_phase=1,
+                    fix_summary=(
+                        "Add Flask-Talisman: `pip install flask-talisman`, then `Talisman(app)` — "
+                        "or set the headers yourself in an `after_request` handler."
+                    ),
+                )
+            )
+
+        # FastAPI app without any security middleware (no canonical single control)
+        fastapi_app = FASTAPI_APP.search(content)
+        if fastapi_app and not FASTAPI_SECURITY.search(content):
+            line_num = _line_of(content, fastapi_app.start())
+            findings.append(
+                Finding(
+                    file=str(file_path),
+                    line=line_num,
+                    severity="LOW",
+                    title="FastAPI app without security middleware",
+                    description=(
+                        "FastAPI adds no security headers by default and no security middleware "
+                        "(HSTS/CSP/frame-options, or the `secure` library) was found."
+                    ),
+                    scanner=self.name,
+                    snippet=_context(content, line_num),
+                    fix_phase=1,
+                    fix_summary=(
+                        "Add security headers via middleware — e.g. `app.add_middleware(...)` for "
+                        "HTTPS redirect / trusted-host, or the `secure` library for HSTS/CSP/nosniff."
+                    ),
+                )
+            )
+
         # Check for wildcard CORS
         cors_match = HEADER_CHECKS[1][1].search(content)
         if cors_match:
-            line_num = content[: cors_match.start()].count("\n") + 1
-            lines = content.splitlines()
-            start = max(0, line_num - 2)
-            end = min(len(lines), line_num + 1)
-            snippet = "\n".join(lines[start:end])
-
+            line_num = _line_of(content, cors_match.start())
             findings.append(
                 Finding(
                     file=str(file_path),
@@ -128,13 +207,50 @@ class HeadersScanner(BaseScanner):
                     title="Wildcard CORS — any website can call your API",
                     description=HEADER_CHECKS[1][3],
                     scanner=self.name,
-                    snippet=snippet,
+                    snippet=_context(content, line_num),
                     fix_phase=2,
                     fix_summary=HEADER_CHECKS[1][4],
                 )
             )
 
         return findings
+
+    def _check_django_settings(self, file_path: Path, content: str) -> list[Finding]:
+        """Flag a Django settings module that lacks HTTPS/HSTS hardening.
+
+        Fires only on a real settings module (``INSTALLED_APPS`` plus a
+        ``django.contrib``/``middleware`` reference) that sets neither
+        ``SECURE_SSL_REDIRECT`` nor ``SECURE_HSTS_SECONDS`` — the same gap
+        ``manage.py check --deploy`` reports. Kept narrow to avoid firing on
+        ordinary django imports.
+        """
+        settings_match = DJANGO_SETTINGS.search(content)
+        if settings_match is None or not DJANGO_CONTRIB.search(content):
+            return []
+        if DJANGO_HARDENED.search(content):
+            return []
+        line_num = _line_of(content, settings_match.start())
+        return [
+            Finding(
+                file=str(file_path),
+                line=line_num,
+                severity="MEDIUM",
+                title="Django settings missing HTTPS/HSTS hardening",
+                description=(
+                    "This Django settings module sets neither SECURE_SSL_REDIRECT nor "
+                    "SECURE_HSTS_SECONDS, so it doesn't force HTTPS or send HSTS. "
+                    "`manage.py check --deploy` flags this."
+                ),
+                scanner=self.name,
+                snippet=_context(content, line_num),
+                fix_phase=1,
+                fix_summary=(
+                    "In your production settings add: SECURE_SSL_REDIRECT=True, "
+                    "SECURE_HSTS_SECONDS=31536000, SESSION_COOKIE_SECURE=True, "
+                    "CSRF_COOKIE_SECURE=True, SECURE_CONTENT_TYPE_NOSNIFF=True."
+                ),
+            )
+        ]
 
     def scan(self, files: list[Path]) -> list[Finding]:
         """Run per-file checks, then a single project-level CSRF check."""
