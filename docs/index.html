@@ -363,8 +363,8 @@ claude mcp add scout -- scout-mcp</code></pre>
                 </tr>
                 <tr>
                     <td><code>headers</code></td>
-                    <td>Missing helmet/security headers, wildcard CORS, no CSP</td>
-                    <td><span class="sev-high">HIGH</span></td>
+                    <td>Missing security headers (Express/Flask/Django/FastAPI), wildcard CORS, missing CSRF</td>
+                    <td><span class="sev-medium">LOW–MEDIUM</span></td>
                 </tr>
                 <tr>
                     <td><code>deps</code></td>
@@ -383,19 +383,25 @@ claude mcp add scout -- scout-mcp</code></pre>
         <pre><code>scout scan &lt;path&gt; [OPTIONS]
 
 Options:
-  --format, -f   Output format: markdown | ai-prompt | json (default: markdown)
+  --format, -f   Output format: markdown | ai-prompt | json | sarif (default: markdown)
   --output, -o   Output path (omit with --format json to print to stdout)</code></pre>
     </section>
 
-    <!-- Roadmap: AI confirmation -->
+    <!-- Optional: AI confirmation -->
     <section>
-        <h2>Roadmap: AI Confirmation Pass</h2>
+        <h2>Optional: AI Confirmation Pass</h2>
         <p class="text-muted-large">
-            A planned <em>optional</em> pass that double-checks findings with an AI provider
-            (Anthropic, OpenAI, or local Ollama) to cut false positives further.
-            <strong>Not yet implemented</strong> — today every scan is 100% static: deterministic,
-            offline, zero tokens. When it ships, it will stay optional and off by default;
-            the core scan will never require an API key or account.
+            The core scan is always static, deterministic, offline, and zero-token — same scan,
+            same findings, no API key. That is the default and never changes.
+        </p>
+        <p class="text-muted-large">
+            <em>Optionally</em>, Scout can send <strong>only the flagged snippet</strong> (never whole files)
+            of each heuristic finding to an AI provider (Anthropic, OpenAI, or local Ollama), which can
+            <strong>downgrade</strong> or <strong>dismiss</strong> a false positive. Dependency and
+            project-level findings are deterministic facts and are never second-guessed; any provider
+            error leaves findings untouched (fails open), so it can never hide a real issue.
+            It is <strong>off by default</strong> — enable per run with <code>--model anthropic</code>,
+            <code>--model openai</code>, or <code>--model ollama</code>.
         </p>
     </section>
 
