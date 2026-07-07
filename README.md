@@ -155,8 +155,12 @@ Commit `.scout-baseline.json`. Finding identity is content-based — the rule, t
 |---------|---------|----------|
 | `secrets` | AWS keys, GitHub tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
 | `injection` | SQL injection, command injection, eval(), XSS | CRITICAL |
-| `headers` | Missing helmet, wildcard CORS, no CSP | HIGH |
+| `headers` | Missing security headers (Express/Flask/Django/FastAPI), wildcard CORS, missing CSRF | LOW–MEDIUM |
 | `deps` | Known vulnerabilities in pip + npm dependencies (via OSV.dev) | HIGH |
+
+### Language scope
+
+Deep analysis — **injection** (SQL/command/XSS) and **security headers** — targets **Python and JS/TS**, where the detection patterns are idiom-specific. **Secret detection is language-agnostic**: it runs on every common source and config file Scout collects (Go, Java, Ruby, PHP, C/C++, Rust, shell, `.env`, `Dockerfile`, `docker-compose`, Terraform, …), so a hardcoded key is caught whatever language leaked it. Dependency scanning covers `requirements.txt` and `package-lock.json`.
 
 ## Example Output
 

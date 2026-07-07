@@ -7,7 +7,7 @@ from pathlib import Path
 
 from scout.models import Finding
 from scout.scanners import register_scanner
-from scout.scanners.base import BaseScanner
+from scout.scanners.base import PYTHON_JS_SUFFIXES, BaseScanner
 
 # SQL Injection patterns
 SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
@@ -151,6 +151,7 @@ class InjectionScanner(BaseScanner):
 
     name = "injection"
     description = "Finds SQL injection, command injection, and cross-site scripting"
+    suffixes = PYTHON_JS_SUFFIXES  # Python/JS idioms only — not language-agnostic
 
     def scan_file(self, file_path: Path, content: str) -> list[Finding]:
         """Scan for injection vulnerabilities."""

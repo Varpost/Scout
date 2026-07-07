@@ -7,7 +7,7 @@ from pathlib import Path
 
 from scout.models import Finding
 from scout.scanners import register_scanner
-from scout.scanners.base import BaseScanner
+from scout.scanners.base import PYTHON_JS_SUFFIXES, BaseScanner
 
 # Patterns indicating a web framework is in use
 FRAMEWORK_INDICATORS = {
@@ -113,6 +113,7 @@ class HeadersScanner(BaseScanner):
 
     name = "headers"
     description = "Finds missing security headers, CORS issues, and middleware gaps"
+    suffixes = PYTHON_JS_SUFFIXES  # Express/Flask/Django/FastAPI live in Python/JS
 
     def scan_file(self, file_path: Path, content: str) -> list[Finding]:
         """Per-file header checks (Helmet/Talisman/middleware, CORS, Django settings).

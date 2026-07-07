@@ -7,12 +7,21 @@ from pathlib import Path
 
 from scout.models import Finding
 
+# Deep-analysis scanners (injection, headers) understand only Python and JS/TS
+# idioms, so they narrow to these suffixes rather than run their patterns on
+# files they can't reason about. Language-agnostic scanners (secrets, deps)
+# leave ``suffixes`` None and scan everything collect_files gathers — a leaked
+# key matters whatever language it's in.
+PYTHON_JS_SUFFIXES = frozenset({".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"})
+
 
 class BaseScanner(ABC):
     """Abstract base class for all security scanners."""
 
     name: str = "base"
     description: str = ""
+    # Suffixes this scanner applies to; None means every collected file.
+    suffixes: frozenset[str] | None = None
 
     @abstractmethod
     def scan_file(self, file_path: Path, content: str) -> list[Finding]:
@@ -37,6 +46,8 @@ class BaseScanner(ABC):
         """
         findings: list[Finding] = []
         for file_path in files:
+            if self.suffixes is not None and file_path.suffix.lower() not in self.suffixes:
+                continue
             try:
                 content = file_path.read_text(encoding="utf-8", errors="ignore")
                 findings.extend(self.scan_file(file_path, content))
