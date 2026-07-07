@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.Varpost/scout -->
 # Scout
 
 **AI security team in a CLI.** Find vulnerabilities before hackers do — free, local, no signup.
