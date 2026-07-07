@@ -42,6 +42,35 @@ def test_detects_stripe_live_key():
     assert any("Stripe Live Key" in t for t in titles)
 
 
+def test_detects_current_provider_key_formats():
+    # T3.3a: the credential formats Scout's audience most commonly leaks but
+    # earlier versions couldn't see. Values are split via _build_secret so the
+    # source never contains a whole token (GitHub Push Protection stays quiet).
+    scanner = SecretsScanner()
+    cases = [
+        ("Anthropic API Key", _build_secret("sk-ant-", "api03-" + "A" * 60)),
+        ("OpenAI Project Key", _build_secret("sk-" + "proj-", "T3st" + "A" * 60)),
+        ("Slack Token", _build_secret("xox" + "b-", "2488-1234567890-ABCDEFghijklmn")),
+        ("Google API Key", _build_secret("AIza", "Sy" + "A" * 33)),
+        ("GitLab Token", _build_secret("glpat-", "A" * 20)),
+        ("npm Token", _build_secret("npm" + "_", "A" * 36)),
+        ("PyPI Token", _build_secret("pypi-", "AgEIcHlwaS" + "A" * 50)),
+    ]
+    for expected_title, key in cases:
+        content = f'SECRET = "{key}"'
+        titles = [f.title for f in scanner.scan_file(Path("fake.py"), content)]
+        assert any(expected_title in t for t in titles), f"{expected_title} not detected: {titles}"
+
+
+def test_new_provider_key_formats_do_not_false_positive_on_safe_code():
+    # The new strict-prefix patterns must not fire on ordinary code.
+    scanner = SecretsScanner()
+    content = FIXTURES.joinpath("safe_app.py").read_text()
+    titles = [f.title for f in scanner.scan_file(FIXTURES / "safe_app.py", content)]
+    for name in ("Anthropic API Key", "OpenAI Project Key", "Slack Token", "Google API Key", "GitLab Token"):
+        assert not any(name in t for t in titles), f"unexpected {name}: {titles}"
+
+
 # --- Patterns safe from push protection (tested via fixture) ---
 
 

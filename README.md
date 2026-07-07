@@ -161,7 +161,7 @@ Commit `.scout-baseline.json`. Finding identity is content-based — the rule, t
 
 | Scanner | Detects | Severity |
 |---------|---------|----------|
-| `secrets` | AWS keys, GitHub tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
+| `secrets` | AWS/Google keys, GitHub/GitLab tokens, Anthropic & OpenAI keys, Slack/npm/PyPI tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
 | `injection` | SQL injection, command injection, eval(), XSS | CRITICAL |
 | `headers` | Missing security headers (Express/Flask/Django/FastAPI), wildcard CORS, missing CSRF | LOW–MEDIUM |
 | `deps` | Known vulnerabilities in pip + npm dependencies (via OSV.dev) | HIGH |
