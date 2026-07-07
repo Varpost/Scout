@@ -203,6 +203,34 @@ scout scan . --model ollama --ollama-model llama3
 
 Provider resolution is `--model` > `SCOUT_AI_PROVIDER` env > `none`. Override the model per provider with `SCOUT_AI_MODEL`. `--no-ai` forces the pass off regardless of config. Install the SDKs with `pip install "scout-security[ai]"` (Ollama needs no extra).
 
+## MCP Server (agent verifier)
+
+Run Scout as an [MCP](https://modelcontextprotocol.io) tool your coding agent can call in a scan → fix → rescan loop — deterministic, offline, zero-token, no inference cost. Scout finds it; your agent fixes it; Scout re-verifies.
+
+```bash
+pip install "scout-security[mcp]"
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add scout -- scout-mcp
+```
+
+**Cursor / Claude Desktop** (`mcp.json` / config):
+
+```json
+{
+  "mcpServers": {
+    "scout": { "command": "scout-mcp" }
+  }
+}
+```
+
+Zero-install with uv: use `"command": "uvx", "args": ["--from", "scout-security[mcp]", "scout-mcp"]`.
+
+It exposes one tool — **`scan_path(path)`** — returning the same Layer-3 JSON as `--format json` (findings with file, line, severity, stable id, explanation, and fix guidance). Point the agent's fix loop at it and call again to confirm the issue is gone.
+
 ## Add a Custom Scanner
 
 ```python

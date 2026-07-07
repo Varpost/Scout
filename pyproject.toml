@@ -38,6 +38,10 @@ ai = [
     "anthropic>=0.20.0",
     "openai>=1.10.0",
 ]
+# MCP server (`scout-mcp`) — lets agents call the scan as a deterministic tool.
+mcp = [
+    "mcp>=1.9",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -46,6 +50,8 @@ dev = [
     # mypy targets py310 (see [tool.mypy]), where config.py imports tomli —
     # needed unconditionally so type-checking resolves it on 3.11+ too.
     "tomli>=2.0.1",
+    # MCP server + its stdio test run in CI.
+    "mcp>=1.9",
 ]
 
 [project.scripts]
@@ -53,6 +59,8 @@ scout = "scout.cli:app"
 # NCC ScoutSuite also installs a `scout` command; whichever package is
 # installed last silently owns the name. `scoutsec` always works.
 scoutsec = "scout.cli:app"
+# MCP server over stdio (needs the `mcp` extra).
+scout-mcp = "scout.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/Varpost/Scout"
