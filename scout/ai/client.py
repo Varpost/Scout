@@ -8,7 +8,13 @@ from typing import Any
 
 import httpx
 
+from scout.ai.prompts import IMPLEMENTER_SYSTEM, SCOUT_CONFIRM_SYSTEM
 from scout.config import ScoutConfig
+
+# Confirmation is a high-volume, per-finding call — default to the cheap/fast
+# tier. Override for any provider via config.ai_model (SCOUT_AI_MODEL).
+DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 
 @dataclass
@@ -47,12 +53,7 @@ class AIClient:
         Returns:
             AIResponse with severity rating and explanation.
         """
-        system = (
-            "You are a security code reviewer. Analyze this snippet only. "
-            "Respond in JSON only. No preamble. "
-            'Format: {"severity": "HIGH", "confirmed": true, '
-            '"explanation": "...", "fix_summary": "..."}'
-        )
+        system = SCOUT_CONFIRM_SYSTEM
         user_msg = json.dumps(
             {
                 "file": file,
@@ -88,11 +89,7 @@ class AIClient:
         Returns:
             AIResponse with the replacement code.
         """
-        system = (
-            "You are a security engineer writing minimal safe code fixes. "
-            "Return only the modified code for the exact lines specified. "
-            "No explanation. No markdown. Just the replacement code."
-        )
+        system = IMPLEMENTER_SYSTEM
         user_msg = json.dumps(
             {
                 "file": file,
@@ -133,7 +130,7 @@ class AIClient:
         try:
             client = anthropic.Anthropic(api_key=self.config.anthropic_key)
             response = client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=self.config.ai_model or DEFAULT_ANTHROPIC_MODEL,
                 max_tokens=500,
                 system=system,
                 messages=[{"role": "user", "content": user_msg}],
@@ -156,7 +153,7 @@ class AIClient:
         try:
             client = openai.OpenAI(api_key=self.config.openai_key)
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self.config.ai_model or DEFAULT_OPENAI_MODEL,
                 max_tokens=500,
                 messages=[
                     {"role": "system", "content": system},

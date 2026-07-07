@@ -98,17 +98,19 @@ def scan(
         "none",
         "--model",
         "-m",
-        help="Reserved — AI confirmation pass not yet implemented. Every scan is currently static-only.",
+        help="Optional AI confirmation provider: none (default) | anthropic | openai | ollama. "
+        "Confirms/downgrades/dismisses heuristic findings; needs the matching API key. "
+        "The core scan is always static and deterministic.",
     ),
     ollama_model: str = typer.Option(
         "llama3",
         "--ollama-model",
-        help="Reserved — AI confirmation pass not yet implemented.",
+        help="Ollama model to use when --model ollama (default: llama3).",
     ),
     no_ai: bool = typer.Option(
         False,
         "--no-ai",
-        help="Skip the AI pass (currently a no-op — the AI pass is not yet implemented).",
+        help="Force the AI confirmation pass off (overrides --model and SCOUT_AI_PROVIDER).",
     ),
     output: Path | None = typer.Option(
         None,

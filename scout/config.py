@@ -34,6 +34,8 @@ class ScoutConfig:
         exclude: Paths/globs (relative to the scan root) to skip.
         scanners: Scanner names to run; None means all registered scanners.
         fail_on: Severity threshold for exit code 1 (or "never").
+        ai_model: Override the confirmation-pass model for the selected
+            provider; None uses that provider's built-in default.
     """
 
     ai_provider: str
@@ -44,6 +46,7 @@ class ScoutConfig:
     exclude: tuple[str, ...] = ()
     scanners: tuple[str, ...] | None = None
     fail_on: str = "high"
+    ai_model: str | None = None
 
     @property
     def ai_enabled(self) -> bool:
@@ -170,4 +173,5 @@ def load_config(
         exclude=exclude,
         scanners=scanners,
         fail_on=fail_on,
+        ai_model=os.getenv("SCOUT_AI_MODEL"),
     )
