@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Varpost/scout",
+  "title": "Scout Security",
+  "description": "Deterministic, zero-token security scanner your AI agent calls to find and re-verify issues.",
+  "repository": {
+    "url": "https://github.com/Varpost/Scout",
+    "source": "github",
+    "id": "R_kgDOSpbxUA"
+  },
+  "version": "0.1.5",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "scout-security",
+      "version": "0.1.5",
+      "runtimeHint": "uvx",
+      "runtimeArguments": [
+        { "type": "named", "name": "--from", "value": "scout-security[mcp]" }
+      ],
+      "packageArguments": [
+        { "type": "positional", "value": "scout-mcp" }
+      ],
+      "transport": { "type": "stdio" }
+    }
+  ]
+}
