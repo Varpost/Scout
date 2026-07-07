@@ -16,6 +16,14 @@ AI coding assistants write insecure code constantly — hardcoded secrets, SQL i
 
 ## Install
 
+Zero-install — try it in one command with [uv](https://docs.astral.sh/uv/) (no venv, ~1s cold start):
+
+```bash
+uvx scout-security scan ./my-project
+```
+
+Or install it permanently:
+
 ```bash
 pip install scout-security
 ```
