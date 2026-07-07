@@ -211,8 +211,8 @@
     <section class="hero">
         <h1>Scout</h1>
         <p class="tagline">Your AI security team in a CLI. Find vulnerabilities before hackers do — free, local, no signup.</p>
-        <div class="install-box" onclick="navigator.clipboard.writeText('pip install scout-security')">
-            $ pip install scout-security
+        <div class="install-box" onclick="navigator.clipboard.writeText('uvx scout-security scan .')">
+            $ uvx scout-security scan .
         </div>
         <div class="badges">
             <span class="badge">Python 3.10+</span>
@@ -241,7 +241,11 @@
         <div class="steps">
             <div class="step">
                 <h3>Install</h3>
-                <pre><code>pip install scout-security</code></pre>
+                <pre><code># zero-install with uv:
+uvx scout-security scan .
+
+# or install permanently:
+pip install scout-security</code></pre>
             </div>
             <div class="step">
                 <h3>Scan your project</h3>
@@ -426,7 +430,7 @@ class MyScanner(BaseScanner):
 <script>
 // Copy install command on click
 document.querySelector('.install-box').addEventListener('click', function() {
-    navigator.clipboard.writeText('pip install scout-security');
+    navigator.clipboard.writeText('uvx scout-security scan .');
     this.style.borderColor = '#3fb950';
     setTimeout(() => this.style.borderColor = '', 1500);
 });
