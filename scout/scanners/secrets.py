@@ -30,7 +30,7 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
     ),
     (
         "GitHub Token",
-        re.compile(r"(ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})"),
+        re.compile(r"(gh[oprsu]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})"),
         "CRITICAL",
         ("GitHub personal access token in code. Allows pushing code, reading private repos, managing your account."),
         (
@@ -58,6 +58,61 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str], str, str, str]] = [
         "HIGH",
         "OpenAI API key in code. Anyone can use your API credits and potentially access fine-tuned models.",
         "Move to environment variable.",
+    ),
+    (
+        "OpenAI Project Key",
+        re.compile(r"(?<![A-Za-z0-9])(sk-(?:proj|svcacct|admin)-[A-Za-z0-9_-]{20,})"),
+        "HIGH",
+        (
+            "Current-format OpenAI key (project / service-account / admin) in code. "
+            "Anyone can spend your API credits and reach your OpenAI resources."
+        ),
+        "Move to environment variable. Rotate the key in the OpenAI dashboard immediately.",
+    ),
+    (
+        "Anthropic API Key",
+        re.compile(r"(?<![A-Za-z0-9])(sk-ant-[A-Za-z0-9_-]{20,})"),
+        "HIGH",
+        "Anthropic (Claude) API key in code. Anyone can spend your API credits and read your usage.",
+        "Move to environment variable. Rotate the key in the Anthropic console immediately.",
+    ),
+    (
+        "Slack Token",
+        re.compile(r"(xox[baprs]-[A-Za-z0-9-]{10,})"),
+        "HIGH",
+        "Slack API token in code. Depending on scope it can read messages, post as your app, or manage the workspace.",
+        "Move to environment variable. Revoke and reissue the token in Slack immediately.",
+    ),
+    (
+        "Google API Key",
+        re.compile(r"(?<![A-Za-z0-9_-])(AIza[0-9A-Za-z_-]{35})(?![A-Za-z0-9_-])"),
+        "MEDIUM",
+        (
+            "Google API key in code. If unrestricted it can run up billing on Maps/Cloud APIs. "
+            "Many such keys are intended to be public, so this is MEDIUM — restrict it by referrer/IP."
+        ),
+        "Move to environment variable and add API/referrer restrictions in the Google Cloud console.",
+    ),
+    (
+        "GitLab Token",
+        re.compile(r"(?<![A-Za-z0-9])(glpat-[A-Za-z0-9_-]{20})(?![A-Za-z0-9_-])"),
+        "CRITICAL",
+        "GitLab personal access token in code. Allows reading/pushing to your repos and managing your account.",
+        "Move to environment variable. Revoke the token in GitLab (Settings → Access Tokens) immediately.",
+    ),
+    (
+        "npm Token",
+        re.compile(r"(?<![A-Za-z0-9])(npm_[A-Za-z0-9]{36})(?![A-Za-z0-9])"),
+        "HIGH",
+        "npm access token in code. Allows publishing packages as you — a supply-chain compromise risk.",
+        "Move to environment variable. Revoke the token at npmjs.com immediately.",
+    ),
+    (
+        "PyPI Token",
+        re.compile(r"(pypi-[A-Za-z0-9_-]{50,})"),
+        "HIGH",
+        "PyPI upload token in code. Allows publishing packages as you — a supply-chain compromise risk.",
+        "Move to environment variable. Revoke the token at pypi.org immediately.",
     ),
     (
         "Generic API Key Assignment",
