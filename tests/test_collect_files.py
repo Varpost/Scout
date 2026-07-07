@@ -45,6 +45,41 @@ def test_unrelated_extensionless_files_are_not_collected(tmp_path):
     assert "app.py" in names
 
 
+# --- .gitignore awareness (T3.2) ---------------------------------------------
+
+
+def test_gitignored_files_are_excluded(tmp_path):
+    (tmp_path / ".gitignore").write_text("build/\n*.generated.js\n", encoding="utf-8")
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "bundle.js").write_text("x\n", encoding="utf-8")
+    (tmp_path / "api.generated.js").write_text("x\n", encoding="utf-8")
+    (tmp_path / "app.py").write_text("print('hi')\n", encoding="utf-8")
+
+    names = {f.name for f in collect_files(tmp_path)}
+    assert names == {"app.py"}
+
+
+def test_source_dir_named_env_is_scanned_when_not_gitignored(tmp_path):
+    # Regression (T3.2): "env" used to be a hardcoded skip, hiding a legit
+    # source dir of that name. With no .gitignore, it must be scanned.
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / "config.py").write_text("SECRET = 'x'\n", encoding="utf-8")
+
+    names = {f.name for f in collect_files(tmp_path)}
+    assert "config.py" in names
+
+
+def test_virtualenv_named_env_is_skipped_via_gitignore(tmp_path):
+    # The common case: env/ is a virtualenv and lives in .gitignore.
+    (tmp_path / ".gitignore").write_text("env/\n", encoding="utf-8")
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / "sitecustomize.py").write_text("x\n", encoding="utf-8")
+    (tmp_path / "app.py").write_text("print('hi')\n", encoding="utf-8")
+
+    names = {f.name for f in collect_files(tmp_path)}
+    assert names == {"app.py"}
+
+
 # --- exclude patterns --------------------------------------------------------
 
 
