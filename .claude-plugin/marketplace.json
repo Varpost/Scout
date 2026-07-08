@@ -1,0 +1,13 @@
+{
+  "name": "scout",
+  "description": "Scout: deterministic, zero-token security scanner for AI-assisted coding.",
+  "owner": { "name": "Tejaswi Raj", "url": "https://github.com/Varpost/Scout" },
+  "plugins": [
+    {
+      "name": "scout",
+      "source": "./",
+      "description": "Scout security scanner MCP plugin",
+      "category": "security"
+    }
+  ]
+}
