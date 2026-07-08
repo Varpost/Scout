@@ -8,13 +8,13 @@
     "source": "github",
     "id": "R_kgDOSpbxUA"
   },
-  "version": "0.1.5",
+  "version": "0.1.6",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "scout-security",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "runtimeHint": "uvx",
       "runtimeArguments": [
         { "type": "named", "name": "--from", "value": "scout-security[mcp]" }
