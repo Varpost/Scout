@@ -220,6 +220,19 @@ Provider resolution is `--model` > `SCOUT_AI_PROVIDER` env > `none`. Override th
 
 Run Scout as an [MCP](https://modelcontextprotocol.io) tool your coding agent can call in a scan → fix → rescan loop — deterministic, offline, zero-token, no inference cost. Scout finds it; your agent fixes it; Scout re-verifies.
 
+### Install as a Claude Code plugin
+
+The one-command path — the plugin bundles the MCP server, so no separate `claude mcp add` is needed:
+
+```text
+/plugin marketplace add Varpost/Scout
+/plugin install scout@scout
+```
+
+That registers the `scan_path` tool and a `/scout-scan [path]` command. Requires [uv](https://docs.astral.sh/uv/) on your PATH — the plugin launches the server with `uvx` (first run downloads the package; later runs hit the cache). No uv? Use the manual setup below with `pip install "scout-security[mcp]"` and `"command": "scout-mcp"` instead.
+
+### Manual setup (any MCP host)
+
 ```bash
 pip install "scout-security[mcp]"
 ```
