@@ -297,8 +297,19 @@ scout scan .                      # clean? the loop is closed</code></pre>
 
         <h3>2. An agent that calls Scout itself (Claude Code, Cursor Agent)</h3>
         <p class="text-muted-large">Run Scout as an <a href="https://modelcontextprotocol.io">MCP</a> server your agent invokes in a scan &rarr; fix &rarr; rescan loop &mdash; the deterministic, zero-token verifier inside the loop.</p>
-        <pre><code>pip install "scout-security[mcp]"
-claude mcp add scout -- scout-mcp</code></pre>
+        <p class="text-muted-large"><strong>Claude Code</strong> &mdash; install the plugin (bundles the server; requires <a href="https://docs.astral.sh/uv/">uv</a>):</p>
+        <pre><code>/plugin marketplace add Varpost/Scout
+/plugin install scout@scout</code></pre>
+        <p class="text-muted-large"><strong>Any other MCP host</strong> &mdash; Cursor (<code>.cursor/mcp.json</code>), Claude Desktop (<code>claude_desktop_config.json</code>), Cline (<code>cline_mcp_settings.json</code>), Windsurf (<code>~/.codeium/windsurf/mcp_config.json</code>), VS Code (<code>.vscode/mcp.json</code>, under a <code>"servers"</code> key) &mdash; all take the same definition:</p>
+        <pre><code>{
+  "mcpServers": {
+    "scout": {
+      "command": "uvx",
+      "args": ["--from", "scout-security[mcp]", "scout-mcp"]
+    }
+  }
+}</code></pre>
+        <p class="text-muted-large">No uv? <code>pip install "scout-security[mcp]"</code> and use <code>"command": "scout-mcp"</code> with no <code>args</code>.</p>
         <p class="text-muted-large">Then tell the agent: <em>"Scan this project with Scout, fix every finding, then scan again &mdash; repeat until it reports zero."</em> It calls <code>scan_path</code>, applies fixes, and calls again.</p>
 
         <h3>3. CI / pre-commit (make the loop mandatory)</h3>
