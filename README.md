@@ -158,6 +158,18 @@ scout scan . --baseline .scout-baseline.json   # report and fail only on NEW fin
 
 Commit `.scout-baseline.json`. Finding identity is content-based — the rule, the file, and a hash of the flagged line, deliberately **no line numbers** — so baselined findings stay accepted when unrelated edits shift them up or down a file. Changing the flagged line itself brings the finding back for review.
 
+## Scanning Git History for Secrets
+
+A secret committed and later removed is still compromised — a scan of today's code can't see it:
+
+```bash
+scout scan . --git-history        # secrets in every added line of every commit, all branches
+```
+
+Findings are anchored to the commit that introduced them (`config.py @ 1a2b3c4d5e6f`) — **rotate anything it reports**; deleting the line doesn't un-leak the credential. Needs `git` on PATH; scans history *instead of* the working tree.
+
+Honest scope: [Gitleaks](https://github.com/gitleaks/gitleaks) and [TruffleHog](https://github.com/trufflesecurity/trufflehog) do deep, fast history auditing as their core job — Scout's pass is the built-in convenience, not a replacement.
+
 ## What It Finds
 
 | Scanner | Detects | Severity |

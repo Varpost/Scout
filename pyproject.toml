@@ -96,6 +96,10 @@ ignore = ["S101"]
 # Test fixtures intentionally contain hardcoded "secrets" and unused imports —
 # they exist precisely to be detected by Scout's own scanners.
 "tests/fixtures/*" = ["S105", "S106", "S107", "F401"]
+# History scanning shells out to git by design (fixed argv, no shell) — the
+# T0.10 gitpython removal stands. Its tests build real temp repos the same way.
+"scout/git_history.py" = ["S603", "S607"]
+"tests/test_git_history.py" = ["S603", "S607"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -189,3 +189,54 @@ def test_unknown_scanner_in_config_exits_2(tmp_path):
 
     result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai"])
     assert result.exit_code == 2
+
+
+def test_watch_rescans_on_change_and_exits_cleanly_on_interrupt(tmp_path, monkeypatch):
+    # First poll: a file changes (mtime bumped past the 1s granularity), so the
+    # loop must re-scan. Second poll: Ctrl-C, which must exit 0, not crash.
+    import os
+
+    import scout.cli as cli_module
+
+    target = tmp_path / "app.py"
+    target.write_text("print('hi')\n", encoding="utf-8")
+
+    polls = {"count": 0}
+
+    def fake_sleep(_seconds):
+        polls["count"] += 1
+        if polls["count"] == 1:
+            target.write_text('os.system("ls " + user_input)\n', encoding="utf-8")
+            stat = target.stat()
+            os.utime(target, (stat.st_atime + 10, stat.st_mtime + 10))
+        else:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli_module.time, "sleep", fake_sleep)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--watch"])
+
+    assert result.exit_code == 0
+    assert result.output.count("scanning:") == 2  # initial run + one re-scan
+    assert "Watch stopped" in result.output
+
+
+def test_watch_interrupt_before_any_change_scans_once(tmp_path, monkeypatch):
+    import scout.cli as cli_module
+
+    (tmp_path / "app.py").write_text("print('hi')\n", encoding="utf-8")
+
+    def fake_sleep(_seconds):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli_module.time, "sleep", fake_sleep)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--watch"])
+
+    assert result.exit_code == 0
+    assert result.output.count("scanning:") == 1
+    assert "Watch stopped" in result.output
+
+
+def test_watch_rejects_write_baseline(tmp_path):
+    (tmp_path / "app.py").write_text("print('hi')\n", encoding="utf-8")
+    result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--watch", "--write-baseline"])
+    assert result.exit_code == 2
