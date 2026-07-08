@@ -69,6 +69,12 @@ Homepage = "https://github.com/Varpost/Scout"
 Repository = "https://github.com/Varpost/Scout"
 Issues = "https://github.com/Varpost/Scout/issues"
 
+[tool.setuptools.packages.find]
+# Only scout* ships in the wheel. Explicit because flat-layout auto-discovery
+# treats any non-default top-level dir (e.g. the plugin's commands/) as a
+# package candidate and refuses to build.
+include = ["scout*"]
+
 [tool.scout]
 # Dogfood: `scout scan .` stays clean on this repo. tests/ is excluded
 # because fixtures and scanner tests embed deliberate findings as inputs.

@@ -232,27 +232,44 @@ Provider resolution is `--model` > `SCOUT_AI_PROVIDER` env > `none`. Override th
 
 Run Scout as an [MCP](https://modelcontextprotocol.io) tool your coding agent can call in a scan → fix → rescan loop — deterministic, offline, zero-token, no inference cost. Scout finds it; your agent fixes it; Scout re-verifies.
 
-```bash
-pip install "scout-security[mcp]"
+### Install as a Claude Code plugin
+
+The one-command path — the plugin bundles the MCP server, so no separate `claude mcp add` is needed:
+
+```text
+/plugin marketplace add Varpost/Scout
+/plugin install scout@scout
 ```
 
-**Claude Code:**
+That registers the `scan_path` tool and a `/scout-scan [path]` command. Requires [uv](https://docs.astral.sh/uv/) on your PATH — the plugin launches the server with `uvx` (first run downloads the package; later runs hit the cache). No uv? Use the manual setup below with `pip install "scout-security[mcp]"` and `"command": "scout-mcp"` instead.
 
-```bash
-claude mcp add scout -- scout-mcp
-```
+### Manual setup (any MCP host)
 
-**Cursor / Claude Desktop** (`mcp.json` / config):
+Every MCP host takes the same server definition — zero-install via [uv](https://docs.astral.sh/uv/):
 
 ```json
 {
   "mcpServers": {
-    "scout": { "command": "scout-mcp" }
+    "scout": {
+      "command": "uvx",
+      "args": ["--from", "scout-security[mcp]", "scout-mcp"]
+    }
   }
 }
 ```
 
-Zero-install with uv: use `"command": "uvx", "args": ["--from", "scout-security[mcp]", "scout-mcp"]`.
+No uv? `pip install "scout-security[mcp]"`, then use `"command": "scout-mcp"` with no `args`.
+
+Where that definition goes:
+
+| Host | Where |
+|------|-------|
+| **Claude Code** | The [plugin](#install-as-a-claude-code-plugin) above, or `claude mcp add scout -- uvx --from "scout-security[mcp]" scout-mcp` |
+| **Cursor** | `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for all projects |
+| **Claude Desktop** | `claude_desktop_config.json` (Settings → Developer → Edit Config) |
+| **Cline** | `cline_mcp_settings.json` (MCP Servers → Configure MCP Servers) |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
+| **VS Code** (native MCP) | `.vscode/mcp.json` — same server object, but under a `"servers"` key instead of `"mcpServers"` |
 
 It exposes one tool — **`scan_path(path)`** — returning the same Layer-3 JSON as `--format json` (findings with file, line, severity, stable id, explanation, and fix guidance). Point the agent's fix loop at it and call again to confirm the issue is gone.
 
