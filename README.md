@@ -233,27 +233,31 @@ That registers the `scan_path` tool and a `/scout-scan [path]` command. Requires
 
 ### Manual setup (any MCP host)
 
-```bash
-pip install "scout-security[mcp]"
-```
-
-**Claude Code:**
-
-```bash
-claude mcp add scout -- scout-mcp
-```
-
-**Cursor / Claude Desktop** (`mcp.json` / config):
+Every MCP host takes the same server definition — zero-install via [uv](https://docs.astral.sh/uv/):
 
 ```json
 {
   "mcpServers": {
-    "scout": { "command": "scout-mcp" }
+    "scout": {
+      "command": "uvx",
+      "args": ["--from", "scout-security[mcp]", "scout-mcp"]
+    }
   }
 }
 ```
 
-Zero-install with uv: use `"command": "uvx", "args": ["--from", "scout-security[mcp]", "scout-mcp"]`.
+No uv? `pip install "scout-security[mcp]"`, then use `"command": "scout-mcp"` with no `args`.
+
+Where that definition goes:
+
+| Host | Where |
+|------|-------|
+| **Claude Code** | The [plugin](#install-as-a-claude-code-plugin) above, or `claude mcp add scout -- uvx --from "scout-security[mcp]" scout-mcp` |
+| **Cursor** | `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for all projects |
+| **Claude Desktop** | `claude_desktop_config.json` (Settings → Developer → Edit Config) |
+| **Cline** | `cline_mcp_settings.json` (MCP Servers → Configure MCP Servers) |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
+| **VS Code** (native MCP) | `.vscode/mcp.json` — same server object, but under a `"servers"` key instead of `"mcpServers"` |
 
 It exposes one tool — **`scan_path(path)`** — returning the same Layer-3 JSON as `--format json` (findings with file, line, severity, stable id, explanation, and fix guidance). Point the agent's fix loop at it and call again to confirm the issue is gone.
 
