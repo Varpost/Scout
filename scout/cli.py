@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 import typer
@@ -35,6 +36,32 @@ def _exit_code_for(findings: list[Finding], fail_on: str) -> int:
         return 0
     threshold = severity_rank(fail_on.upper())
     return 1 if any(severity_rank(f.severity) <= threshold for f in findings) else 0
+
+
+def _mtime_snapshot(path: Path, exclude: tuple[str, ...], skip: set[Path]) -> dict[Path, float]:
+    """Snapshot mtimes of every scannable file, for --watch change detection.
+
+    Args:
+        path: Scan root (directory or single file).
+        exclude: Exclude patterns from the resolved config.
+        skip: Absolute paths to ignore — Scout's own output artifacts, so
+            writing the report never re-triggers the watch loop.
+
+    Returns:
+        Mapping of file path to mtime; a change in keys or values means
+        something was added, removed, or saved.
+    """
+    from scout.scanners import collect_files
+
+    snapshot: dict[Path, float] = {}
+    for file in collect_files(path, exclude=exclude):
+        if file in skip:
+            continue
+        try:
+            snapshot[file] = file.stat().st_mtime
+        except OSError:  # deleted between collect and stat
+            continue
+    return snapshot
 
 
 def _force_utf8_output() -> None:
@@ -147,6 +174,12 @@ def scan(
         help="Exit 1 when findings at or above this severity exist: critical | high | medium | low | never. "
         "Default: high, or [tool.scout] fail_on.",
     ),
+    watch: bool = typer.Option(
+        False,
+        "--watch",
+        help="Re-scan whenever a file in the scanned path changes (1s poll). "
+        "Ctrl-C stops and exits 0; the --fail-on exit gate does not apply while watching.",
+    ),
 ) -> None:
     """Scan a project for security vulnerabilities."""
     from scout import baseline as baseline_io
@@ -168,6 +201,10 @@ def scan(
             f"[bold red]Error:[/bold red] invalid --fail-on '{fail_on}'. "
             "Choose: critical | high | medium | low | never."
         )
+        raise typer.Exit(code=2)
+
+    if watch and write_baseline:
+        console.print("[bold red]Error:[/bold red] --watch cannot be combined with --write-baseline.")
         raise typer.Exit(code=2)
 
     try:
@@ -197,69 +234,97 @@ def scan(
     pipe_to_stdout = fmt in {"json", "sarif"} and output is None
     msg = Console(stderr=True) if pipe_to_stdout else console
 
-    msg.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
+    def run_once() -> int:
+        """Scan once and emit the configured output; returns the exit code."""
+        msg.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
 
-    outcome = run_scout(path, config, quiet=pipe_to_stdout)
-    findings = outcome.findings
-    root = path if path.is_dir() else path.parent
+        outcome = run_scout(path, config, quiet=pipe_to_stdout)
+        findings = outcome.findings
+        root = path if path.is_dir() else path.parent
 
-    if write_baseline:
-        baseline_path = baseline if baseline is not None else root / baseline_io.DEFAULT_BASELINE_NAME
-        try:
-            count = baseline_io.write_baseline(findings, root, baseline_path)
-        except OSError as exc:
-            msg.print(f"[bold red]Error:[/bold red] cannot write baseline: {exc}")
-            raise typer.Exit(code=2) from None
-        msg.print(f"[bold green]Baseline written:[/bold green] {baseline_path} ({count} finding(s) accepted)")
-        msg.print("[dim]Commit this file; scans with --baseline then report only new findings.[/dim]\n")
-        raise typer.Exit()
+        if write_baseline:
+            baseline_path = baseline if baseline is not None else root / baseline_io.DEFAULT_BASELINE_NAME
+            try:
+                count = baseline_io.write_baseline(findings, root, baseline_path)
+            except OSError as exc:
+                msg.print(f"[bold red]Error:[/bold red] cannot write baseline: {exc}")
+                raise typer.Exit(code=2) from None
+            msg.print(f"[bold green]Baseline written:[/bold green] {baseline_path} ({count} finding(s) accepted)")
+            msg.print("[dim]Commit this file; scans with --baseline then report only new findings.[/dim]\n")
+            return 0
 
-    if known_baseline is not None:
-        findings = baseline_io.filter_baselined(findings, root, known_baseline)
+        if known_baseline is not None:
+            findings = baseline_io.filter_baselined(findings, root, known_baseline)
 
-    exit_code = _exit_code_for(findings, config.fail_on)
+        exit_code = _exit_code_for(findings, config.fail_on)
 
-    if findings:
-        msg.print(f"Found [bold red]{len(findings)}[/bold red] issues:\n")
-        for severity in Severity:
-            count = sum(1 for f in findings if f.severity == severity.value)
-            if count:
-                style, emoji = _SEVERITY_STYLES[severity]
-                msg.print(f"  [{style}]{emoji} {count} {severity.value.lower()}[/{style}]")
-    elif fmt == "markdown":
-        # Nothing to report — json/sarif/ai-prompt still emit a valid (empty) document.
-        msg.print("[bold green]No vulnerabilities found. Ship it![/bold green]\n")
-        raise typer.Exit()
+        if findings:
+            msg.print(f"Found [bold red]{len(findings)}[/bold red] issues:\n")
+            for severity in Severity:
+                count = sum(1 for f in findings if f.severity == severity.value)
+                if count:
+                    style, emoji = _SEVERITY_STYLES[severity]
+                    msg.print(f"  [{style}]{emoji} {count} {severity.value.lower()}[/{style}]")
+        elif fmt == "markdown":
+            # Nothing to report — json/sarif/ai-prompt still emit a valid (empty) document.
+            msg.print("[bold green]No vulnerabilities found. Ship it![/bold green]\n")
+            return 0
 
-    if fmt == "json":
-        text = generate_json(findings, output, project_path=path, files_scanned=outcome.files_scanned)
-        if pipe_to_stdout:
-            print(text)
-        else:
-            msg.print(f"\n[bold green]JSON written to:[/bold green] {output}")
-        raise typer.Exit(code=exit_code)
+        if fmt == "json":
+            text = generate_json(findings, output, project_path=path, files_scanned=outcome.files_scanned)
+            if pipe_to_stdout:
+                print(text)
+            else:
+                msg.print(f"\n[bold green]JSON written to:[/bold green] {output}")
+            return exit_code
 
-    if fmt == "sarif":
-        text = generate_sarif(findings, output, project_path=path, files_scanned=outcome.files_scanned)
-        if pipe_to_stdout:
-            print(text)
-        else:
-            msg.print(f"\n[bold green]SARIF written to:[/bold green] {output}")
-        raise typer.Exit(code=exit_code)
+        if fmt == "sarif":
+            text = generate_sarif(findings, output, project_path=path, files_scanned=outcome.files_scanned)
+            if pipe_to_stdout:
+                print(text)
+            else:
+                msg.print(f"\n[bold green]SARIF written to:[/bold green] {output}")
+            return exit_code
 
-    if fmt == "ai-prompt":
-        prompts_path = output or path / "security-prompts.md"
-        generate_ai_prompts(findings, prompts_path, project_path=path)
-        msg.print(f"\n[bold green]AI fix prompts written to:[/bold green] {prompts_path}")
-        msg.print("[dim]Paste each block into your AI assistant (Cursor, Claude, Copilot, …).[/dim]\n")
-        raise typer.Exit(code=exit_code)
+        if fmt == "ai-prompt":
+            prompts_path = output or path / "security-prompts.md"
+            generate_ai_prompts(findings, prompts_path, project_path=path)
+            msg.print(f"\n[bold green]AI fix prompts written to:[/bold green] {prompts_path}")
+            msg.print("[dim]Paste each block into your AI assistant (Cursor, Claude, Copilot, …).[/dim]\n")
+            return exit_code
 
-    # markdown (default)
-    report_path = output or path / "security-report.md"
-    generate_report(findings, report_path, project_path=path, files_scanned=outcome.files_scanned)
-    msg.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
-    msg.print("[dim]Next: run `scout scan --format ai-prompt` and paste the prompts into your AI assistant.[/dim]\n")
-    raise typer.Exit(code=exit_code)
+        # markdown (default)
+        report_path = output or path / "security-report.md"
+        generate_report(findings, report_path, project_path=path, files_scanned=outcome.files_scanned)
+        msg.print(f"\n[bold green]Report written to:[/bold green] {report_path}")
+        msg.print(
+            "[dim]Next: run `scout scan --format ai-prompt` and paste the prompts into your AI assistant.[/dim]\n"
+        )
+        return exit_code
+
+    if not watch:
+        raise typer.Exit(code=run_once())
+
+    # ponytail: naive 1s mtime poll — swap in watchdog only if poll cost shows up on large trees.
+    # Scout's own artifacts are skipped so writing a report/-o file in-tree
+    # can't re-trigger the loop.
+    artifacts = {
+        p.resolve() for p in (output, path / "security-report.md", path / "security-prompts.md") if p is not None
+    }
+    try:
+        snapshot = _mtime_snapshot(path, config.exclude, artifacts)
+        run_once()
+        msg.print("[dim]Watching for changes — Ctrl-C to stop.[/dim]")
+        while True:
+            time.sleep(1.0)
+            current = _mtime_snapshot(path, config.exclude, artifacts)
+            if current != snapshot:
+                snapshot = current
+                run_once()
+                msg.print("[dim]Watching for changes — Ctrl-C to stop.[/dim]")
+    except KeyboardInterrupt:
+        msg.print("\n[dim]Watch stopped.[/dim]")
+        raise typer.Exit() from None
 
 
 if __name__ == "__main__":
