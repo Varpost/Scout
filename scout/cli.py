@@ -180,12 +180,20 @@ def scan(
         help="Re-scan whenever a file in the scanned path changes (1s poll). "
         "Ctrl-C stops and exits 0; the --fail-on exit gate does not apply while watching.",
     ),
+    git_history: bool = typer.Option(
+        False,
+        "--git-history",
+        help="Audit git commit history (all branches) for leaked secrets instead of scanning "
+        "the working tree. A removed secret is still compromised — rotate anything found. "
+        "For a deep history audit use Gitleaks or TruffleHog; this is the built-in convenience pass.",
+    ),
 ) -> None:
     """Scan a project for security vulnerabilities."""
     from scout import baseline as baseline_io
     from scout.agents.reporter_agent import generate_ai_prompts, generate_json, generate_report, generate_sarif
     from scout.agents.scout_agent import run_scout
     from scout.config import load_config
+    from scout.git_history import scan_git_history
     from scout.scanners import get_all_scanners
 
     fmt = output_format.lower()
@@ -205,6 +213,12 @@ def scan(
 
     if watch and write_baseline:
         console.print("[bold red]Error:[/bold red] --watch cannot be combined with --write-baseline.")
+        raise typer.Exit(code=2)
+
+    # History findings live in commits, not the working tree — a watch loop,
+    # baseline identity, or baseline write can't apply to them.
+    if git_history and (watch or write_baseline or baseline is not None):
+        console.print("[bold red]Error:[/bold red] --git-history cannot be combined with --watch or baselines.")
         raise typer.Exit(code=2)
 
     try:
@@ -238,7 +252,14 @@ def scan(
         """Scan once and emit the configured output; returns the exit code."""
         msg.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning: {path}\n")
 
-        outcome = run_scout(path, config, quiet=pipe_to_stdout)
+        if git_history:
+            try:
+                outcome = scan_git_history(path if path.is_dir() else path.parent)
+            except ValueError as exc:
+                msg.print(f"[bold red]Error:[/bold red] {exc}")
+                raise typer.Exit(code=2) from None
+        else:
+            outcome = run_scout(path, config, quiet=pipe_to_stdout)
         findings = outcome.findings
         root = path if path.is_dir() else path.parent
 
