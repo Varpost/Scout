@@ -518,10 +518,7 @@ footer { border-top: 1px solid var(--border); }
 </section>
 
 <!-- ================= 02 See it in action ================= -->
-<!-- Hidden until the ~75s pitch video exists at docs/assets/scout-pitch.mp4.
-     To re-enable: remove the `hidden` attribute below and renumber the section
-     kickers back (02 SEE IT IN ACTION, 03 THE PROBLEM, … 09 GET STARTED). -->
-<section class="band" id="see-it-in-action" hidden>
+<section class="band" id="see-it-in-action">
   <div class="wrap section-pad">
     <div class="rev">
       <div class="kicker"><span class="num">02</span><span class="label">SEE IT IN ACTION</span></div>
@@ -530,12 +527,11 @@ footer { border-top: 1px solid var(--border); }
     </div>
     <div class="rev">
       <div class="video-card" id="video-card">
-        <!-- VIDEO PLACEHOLDER: drop the ~75s pitch at docs/assets/scout-pitch.mp4 (poster frame, captions). Click-to-play only — never autoplay with sound. -->
+        <!-- 75s pitch video, served as a release asset (39 MB — deliberately not in the repo). Click-to-play only — never autoplay with sound. -->
         <button type="button" class="video-poster" id="video-poster" aria-label="Play the pitch video, about 75 seconds">
           <span class="big-glyph grad-text" aria-hidden="true">❯</span>
           <span class="play-circle" aria-hidden="true">▶</span>
-          <span class="poster-label">PITCH VIDEO · ~75 SEC · CLICK TO PLAY</span>
-          <span class="poster-note">placeholder — assets/scout-pitch.mp4</span>
+          <span class="poster-label">PITCH VIDEO · 75 SEC · CLICK TO PLAY</span>
         </button>
       </div>
     </div>
@@ -546,7 +542,7 @@ footer { border-top: 1px solid var(--border); }
 <section class="band" id="problem">
   <div class="wrap section-pad problem-grid">
     <div class="rev">
-      <div class="kicker"><span class="num">02</span><span class="label">THE PROBLEM</span></div>
+      <div class="kicker"><span class="num">03</span><span class="label">THE PROBLEM</span></div>
       <h2>AI writes code fast. Including the vulnerabilities.</h2>
     </div>
     <div class="rev">
@@ -560,7 +556,7 @@ footer { border-top: 1px solid var(--border); }
 <section class="band" id="what-scout-finds">
   <div class="wrap section-pad">
     <div class="rev">
-      <div class="kicker"><span class="num">03</span><span class="label">WHAT SCOUT FINDS</span></div>
+      <div class="kicker"><span class="num">04</span><span class="label">WHAT SCOUT FINDS</span></div>
       <h2>Four scanners, one pass.</h2>
     </div>
     <div class="cards-4">
@@ -601,7 +597,7 @@ footer { border-top: 1px solid var(--border); }
 <section class="band" id="outputs">
   <div class="wrap section-pad">
     <div class="rev">
-      <div class="kicker"><span class="num">04</span><span class="label">OUTPUTS</span></div>
+      <div class="kicker"><span class="num">05</span><span class="label">OUTPUTS</span></div>
       <h2>One scan, three outputs.</h2>
       <p class="lede">The same scan, read three ways: a plain-English report for you, ready-to-paste fix prompts for your AI, and machine-readable files for automated checks (CI). Scout finds the problem; the AI you already use fixes it.</p>
     </div>
@@ -648,7 +644,7 @@ footer { border-top: 1px solid var(--border); }
 <section class="band" id="how-it-works" style="scroll-margin-top:64px">
   <div class="wrap section-pad">
     <div class="rev">
-      <div class="kicker"><span class="num">05</span><span class="label">HOW IT WORKS</span></div>
+      <div class="kicker"><span class="num">06</span><span class="label">HOW IT WORKS</span></div>
       <h2>Find → Fix → Verify.</h2>
       <p class="lede">Scout finds deterministically, your AI fixes, Scout re-checks. Same scan, same findings, zero tokens on every pass.</p>
     </div>
@@ -679,7 +675,7 @@ footer { border-top: 1px solid var(--border); }
   <span id="ai-assistant" aria-hidden="true"></span><!-- legacy anchor — README badges link here -->
   <div class="wrap section-pad">
     <div class="rev">
-      <div class="kicker"><span class="num">06</span><span class="label">MCP</span></div>
+      <div class="kicker"><span class="num">07</span><span class="label">MCP</span></div>
       <h2>Connect your AI assistant.</h2>
       <p class="lede">Run Scout as an MCP tool your agent calls in a scan → fix → rescan loop. Scout finds it; your agent fixes it; Scout re-verifies — deterministic and zero-token, so the loop never burns inference.</p>
     </div>
@@ -729,7 +725,7 @@ footer { border-top: 1px solid var(--border); }
 <section class="band" id="why-scout">
   <div class="wrap section-pad">
     <div class="rev">
-      <div class="kicker"><span class="num">07</span><span class="label">WHY SCOUT</span></div>
+      <div class="kicker"><span class="num">08</span><span class="label">WHY SCOUT</span></div>
       <h2>Quiet, honest defaults.</h2>
     </div>
     <div class="pillars">
@@ -759,7 +755,7 @@ footer { border-top: 1px solid var(--border); }
 <section class="band" id="get-started">
   <div class="wrap get-started">
     <div class="rev">
-      <div class="kicker"><span class="num">08</span><span class="label">GET STARTED</span></div>
+      <div class="kicker"><span class="num">09</span><span class="label">GET STARTED</span></div>
       <h2>Start scanning <span class="grad-text">in one command.</span></h2>
       <div class="gs-chips">
         <button type="button" class="copy-chip" data-copy="uvx scout-security scan ." aria-label="Copy command: uvx scout-security scan .">
@@ -884,12 +880,12 @@ footer { border-top: 1px solid var(--border); }
       video.controls = true;
       video.preload = 'auto';
       video.setAttribute('playsinline', '');
-      video.src = 'assets/scout-pitch.mp4'; /* VIDEO PLACEHOLDER — replace with the real file */
+      video.src = 'https://github.com/Varpost/Scout/releases/download/v0.1.7/scout-pitch.mp4';
       video.addEventListener('error', function () {
         video.remove();
         var msg = document.createElement('div');
         msg.className = 'video-missing';
-        msg.innerHTML = '<span class="warn">video file not found</span><span class="how">drop the ~75s pitch at assets/scout-pitch.mp4 — poster frame, captions, click-to-play, no autoplay</span>';
+        msg.innerHTML = '<span class="warn">video failed to load</span><span class="how"><a href="https://github.com/Varpost/Scout/releases/download/v0.1.7/scout-pitch.mp4">watch it directly</a></span>';
         card.appendChild(msg);
       });
       poster.remove();
