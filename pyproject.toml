@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scout-security"
-version = "0.1.6"
+version = "0.1.7"
 description = "AI security team in a CLI. Find, plan, fix, and verify vulnerabilities — free, local, no signup."
 readme = "README.md"
 license = {text = "MIT"}
@@ -61,6 +61,10 @@ scout = "scout.cli:app"
 # NCC ScoutSuite also installs a `scout` command; whichever package is
 # installed last silently owns the name. `scoutsec` always works.
 scoutsec = "scout.cli:app"
+# Alias matching the package name — `uvx scout-security scan .` only resolves
+# when an executable is named exactly like the package (with several
+# executables and no name match, uvx refuses to pick one).
+scout-security = "scout.cli:app"
 # MCP server over stdio (needs the `mcp` extra).
 scout-mcp = "scout.mcp_server:main"
 
