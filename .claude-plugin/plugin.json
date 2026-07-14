@@ -1,6 +1,6 @@
 {
   "name": "scout",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Deterministic security scanner for AI-assisted coding. Runs Scout as an agent-callable verifier (scan -> fix -> rescan) with no inference cost.",
   "author": { "name": "Tejaswi Raj", "url": "https://github.com/Varpost/Scout" },
   "mcpServers": {

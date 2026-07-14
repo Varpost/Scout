@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@v0.1.6
+      - uses: Varpost/Scout@v0.1.7
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -110,7 +110,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.6        # use the latest tag
+    rev: v0.1.7        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -188,7 +188,7 @@ Deep analysis — **injection** (SQL/command/XSS) and **security headers** — t
 ```
 $ scout scan ./my-app
 
-Scout v0.1.6 scanning: ./my-app
+Scout v0.1.7 scanning: ./my-app
 
   Scanning 47 files...
 
@@ -231,6 +231,11 @@ Provider resolution is `--model` > `SCOUT_AI_PROVIDER` env > `none`. Override th
 ## MCP Server (agent verifier)
 
 Run Scout as an [MCP](https://modelcontextprotocol.io) tool your coding agent can call in a scan → fix → rescan loop — deterministic, offline, zero-token, no inference cost. Scout finds it; your agent fixes it; Scout re-verifies.
+
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Scout_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=scout&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22scout-security%5Bmcp%5D%22%2C%22scout-mcp%22%5D%7D)
+[![Add to Cursor](https://img.shields.io/badge/Cursor-Add_Scout_MCP-111111?style=flat-square&logoColor=white)](https://varpost.github.io/Scout/#ai-assistant)
+
+*(GitHub strips `cursor://` deep links, so the Cursor badge goes via the site's one-click button.)*
 
 ### Install as a Claude Code plugin
 
