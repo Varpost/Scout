@@ -114,6 +114,45 @@
             font-family: 'SFMono-Regular', Consolas, monospace;
             font-size: 0.9rem;
             line-height: 1.5;
+            position: relative;
+        }
+        pre.copyable { cursor: pointer; }
+        pre.copyable::after {
+            content: 'Copy';
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: -apple-system, sans-serif;
+            opacity: 0;
+        }
+        pre.copyable:hover::after { opacity: 1; }
+        pre.copyable.copied::after { content: 'Copied ✓'; color: var(--green); opacity: 1; }
+        pre.copyable.copied { border-color: var(--green); }
+
+        /* One-click connect buttons */
+        .connect-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+        }
+        .connect-btn {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+        .connect-btn:hover { opacity: 0.85; }
+        .connect-btn.secondary {
+            background: var(--surface);
+            color: var(--accent);
+            border: 1px solid var(--border);
         }
         code {
             font-family: 'SFMono-Regular', Consolas, monospace;
@@ -300,6 +339,12 @@ scout scan .                      # clean? the loop is closed</code></pre>
         <p class="text-muted-large"><strong>Claude Code</strong> &mdash; install the plugin (bundles the server; requires <a href="https://docs.astral.sh/uv/">uv</a>):</p>
         <pre><code>/plugin marketplace add Varpost/Scout
 /plugin install scout@scout</code></pre>
+        <p class="text-muted-large"><strong>VS Code / Cursor</strong> &mdash; one click, config pre-filled:</p>
+        <div class="connect-buttons">
+            <a class="connect-btn" href="vscode:mcp/install?%7B%22name%22%3A%22scout%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22scout-security%5Bmcp%5D%22%2C%22scout-mcp%22%5D%7D">Install in VS Code</a>
+            <a class="connect-btn" href="cursor://anysphere.cursor-deeplink/mcp/install?name=scout&amp;config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJzY291dC1zZWN1cml0eVttY3BdIiwic2NvdXQtbWNwIl19">Add to Cursor</a>
+            <a class="connect-btn secondary" href="vscode-insiders:mcp/install?%7B%22name%22%3A%22scout%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22scout-security%5Bmcp%5D%22%2C%22scout-mcp%22%5D%7D">VS Code Insiders</a>
+        </div>
         <p class="text-muted-large"><strong>Any other MCP host</strong> &mdash; Cursor (<code>.cursor/mcp.json</code>), Claude Desktop (<code>claude_desktop_config.json</code>), Cline (<code>cline_mcp_settings.json</code>), Windsurf (<code>~/.codeium/windsurf/mcp_config.json</code>), VS Code (<code>.vscode/mcp.json</code>, under a <code>"servers"</code> key) &mdash; all take the same definition:</p>
         <pre><code>{
   "mcpServers": {
@@ -472,6 +517,16 @@ document.querySelector('.install-box').addEventListener('click', function() {
     navigator.clipboard.writeText('uvx scout-security scan .');
     this.style.borderColor = '#3fb950';
     setTimeout(() => this.style.borderColor = '', 1500);
+});
+
+// Click-to-copy on every code block
+document.querySelectorAll('pre').forEach(pre => {
+    pre.classList.add('copyable');
+    pre.addEventListener('click', () => {
+        navigator.clipboard.writeText(pre.textContent.trim());
+        pre.classList.add('copied');
+        setTimeout(() => pre.classList.remove('copied'), 1500);
+    });
 });
 </script>
 
