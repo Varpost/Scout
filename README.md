@@ -232,6 +232,11 @@ Provider resolution is `--model` > `SCOUT_AI_PROVIDER` env > `none`. Override th
 
 Run Scout as an [MCP](https://modelcontextprotocol.io) tool your coding agent can call in a scan → fix → rescan loop — deterministic, offline, zero-token, no inference cost. Scout finds it; your agent fixes it; Scout re-verifies.
 
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Scout_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=scout&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22scout-security%5Bmcp%5D%22%2C%22scout-mcp%22%5D%7D)
+[![Add to Cursor](https://img.shields.io/badge/Cursor-Add_Scout_MCP-111111?style=flat-square&logoColor=white)](https://varpost.github.io/Scout/#ai-assistant)
+
+*(GitHub strips `cursor://` deep links, so the Cursor badge goes via the site's one-click button.)*
+
 ### Install as a Claude Code plugin
 
 The one-command path — the plugin bundles the MCP server, so no separate `claude mcp add` is needed:
