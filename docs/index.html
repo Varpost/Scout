@@ -4,15 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scout — Catch vulnerabilities before hackers do.</title>
-<meta name="description" content="A free, local security scanner for the age of AI-generated code. Scout finds the problems, hands the fix to the AI you already use, and re-checks — no signup, no API key, zero tokens.">
+<meta name="description" content="A free, local security scanner for the age of AI-generated code. Scout finds the problems, hands the fix to the AI you already use, and re-checks. No signup, no API key, zero tokens.">
 <link rel="canonical" href="https://varpost.github.io/Scout/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://varpost.github.io/Scout/">
 <meta property="og:title" content="Scout — Catch vulnerabilities before hackers do.">
-<meta property="og:description" content="Free, local security scanner for AI-generated code. Scout finds the problems, hands the fix to the AI you already use, and re-checks — no signup, no API key, zero tokens.">
-<meta name="twitter:card" content="summary">
+<meta property="og:description" content="Free, local security scanner for AI-generated code. Scout finds the problems, hands the fix to the AI you already use, and re-checks. No signup, no API key, zero tokens.">
+<meta property="og:image" content="https://opengraph.githubassets.com/1/Varpost/Scout">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Scout — Catch vulnerabilities before hackers do.">
-<meta name="twitter:description" content="Free, local security scanner for AI-generated code. Finds, hands the fix to your AI, re-checks — no signup, no API key, zero tokens.">
+<meta name="twitter:description" content="Free, local security scanner for AI-generated code. Scout finds, hands the fix to your AI, re-checks. No signup, no API key, zero tokens.">
+<meta name="twitter:image" content="https://opengraph.githubassets.com/1/Varpost/Scout">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%2358a6ff'/%3E%3Cstop offset='1' stop-color='%23bc8cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='19' font-weight='700' text-anchor='middle' fill='%230d1117'%3E%E2%9D%AF%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -200,6 +202,7 @@ a:hover { color: var(--purple); }
 
 /* ---------- Sections ---------- */
 section.band { border-top: 1px solid var(--border-soft); }
+section[id] { scroll-margin-top: 64px; } /* anchors land below the sticky nav */
 .section-pad { padding-top: 96px; padding-bottom: 96px; }
 .kicker { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; }
 .kicker .num { color: var(--blue); }
@@ -224,23 +227,6 @@ code.inline {
   border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   background: var(--surface); aspect-ratio: 16 / 9;
 }
-.video-poster {
-  position: absolute; inset: 0; width: 100%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-  background: transparent; border: none; cursor: pointer; font-family: var(--mono);
-}
-.video-poster .big-glyph {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 220px; font-weight: 700; opacity: .08; pointer-events: none;
-}
-.video-poster .play-circle {
-  width: 68px; height: 68px; border-radius: 50%; border: 1px solid var(--border);
-  background: rgba(13, 17, 23, .75); display: flex; align-items: center; justify-content: center;
-  font-size: 20px; color: var(--text); padding-left: 4px; transition: border-color .18s ease, transform .18s ease;
-}
-.video-poster:hover .play-circle { border-color: var(--blue); transform: scale(1.05); }
-.video-poster .poster-label { font-size: 11px; letter-spacing: .14em; color: var(--muted); }
-.video-poster .poster-note { position: absolute; right: 14px; bottom: 12px; font-size: 10.5px; color: var(--muted); opacity: .7; }
 .video-card video { position: absolute; inset: 0; width: 100%; height: 100%; background: var(--bg); }
 .video-missing {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -276,8 +262,8 @@ code.inline {
 .sev-critical { color: var(--red); background: rgba(248, 81, 73, .12); border: 1px solid rgba(248, 81, 73, .35); }
 .sev-high { color: var(--orange); background: rgba(210, 153, 34, .12); border: 1px solid rgba(210, 153, 34, .35); }
 .sev-lowmed { color: var(--blue); background: rgba(88, 166, 255, .12); border: 1px solid rgba(88, 166, 255, .35); }
-.find-card .plain { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text); }
-.find-card .detail { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.find-card .plain { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text); text-align: justify; }
+.find-card .detail { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); text-align: justify; }
 .finds-footnote { display: block; margin: 18px 2px 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.8; color: var(--muted); }
 
 /* ---------- Outputs ---------- */
@@ -299,7 +285,7 @@ code.inline {
 .out-card:hover { border-color: var(--muted); transform: translateY(-2px); }
 .out-card .for { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--muted); }
 .out-card h3 { margin: 0; font-size: 15.5px; font-weight: 600; }
-.out-card p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.out-card p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); text-align: justify; }
 .out-card .cmd { margin-top: auto; padding-top: 6px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 @media (max-width: 780px) { .conn-h, .out-stub { display: none; } .cards-3 { gap: 16px 20px; margin-top: 20px; } .engine-stack .conn-v { display: none; } }
 
@@ -316,7 +302,7 @@ code.inline {
 .step-head { display: flex; align-items: baseline; gap: 10px; font-family: var(--mono); }
 .step-head .num { font-size: 11px; letter-spacing: .1em; color: var(--blue); }
 .step-head .name { font-size: 12px; letter-spacing: .14em; color: var(--text); }
-.step p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+.step p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--muted); text-align: justify; }
 .loop-note {
   display: flex; justify-content: center; align-items: baseline; gap: 10px; margin-top: 24px;
   font-family: var(--mono); font-size: 12px; color: var(--muted);
@@ -422,7 +408,7 @@ footer { border-top: 1px solid var(--border); }
 
 <a class="skip-link" href="#main">Skip to content</a>
 
-<p class="sr-only">Scout is a free, open-source, local security scanner CLI for AI-generated code. Install with "uvx scout-security scan ." or "pip install scout-security". Scout finds vulnerabilities — leaked secrets, injection, missing security headers, dependency CVEs — hands fix prompts to the AI assistant you already use, and re-checks. The core scan is deterministic, offline, and zero-token. Links: GitHub github.com/Varpost/Scout, PyPI scout-security, MIT license.</p>
+<p class="sr-only">Scout is a free, open-source, local security scanner CLI for AI-generated code. Install with "uvx scout-security scan ." or "pip install scout-security". Scout finds vulnerabilities (leaked secrets, injection, missing security headers, dependency CVEs), hands fix prompts to the AI assistant you already use, and re-checks. The core scan is deterministic, offline, and zero-token. Links: GitHub github.com/Varpost/Scout, PyPI scout-security, MIT license.</p>
 
 <header class="nav-bar">
   <nav class="wrap nav-inner" aria-label="Main">
@@ -522,17 +508,19 @@ footer { border-top: 1px solid var(--border); }
   <div class="wrap section-pad">
     <div class="rev">
       <div class="kicker"><span class="num">02</span><span class="label">SEE IT IN ACTION</span></div>
-      <h2>A 75-second look at Scout.</h2>
+      <h2>Watch Scout work.</h2>
       <p class="lede">Scan, hand the fix to the AI you already use, re-check. The whole loop, end to end.</p>
     </div>
     <div class="rev">
       <div class="video-card" id="video-card">
-        <!-- 75s pitch video, served as a release asset (39 MB — deliberately not in the repo). Click-to-play only — never autoplay with sound. -->
-        <button type="button" class="video-poster" id="video-poster" aria-label="Play the pitch video, about 75 seconds">
-          <span class="big-glyph grad-text" aria-hidden="true">❯</span>
-          <span class="play-circle" aria-hidden="true">▶</span>
-          <span class="poster-label">PITCH VIDEO · 75 SEC · CLICK TO PLAY</span>
-        </button>
+        <!-- 75s pitch video, served as a release asset (39 MB — deliberately not in the repo).
+             Plays when scrolled into view, pauses when scrolled past, resumes where it
+             stopped. Sound-on autoplay is attempted; when the browser blocks it (no user
+             gesture yet) it starts muted and unmutes at the first click/keypress.
+             preload=metadata keeps the 39 MB off visitors who never scroll here. -->
+        <video id="pitch-video" controls playsinline preload="metadata"
+               src="https://github.com/Varpost/Scout/releases/download/v0.1.7/scout-pitch.mp4"
+               aria-label="Scout pitch video, 75 seconds"></video>
       </div>
     </div>
   </div>
@@ -546,8 +534,8 @@ footer { border-top: 1px solid var(--border); }
       <h2>AI writes code fast. Including the vulnerabilities.</h2>
     </div>
     <div class="rev">
-      <p>AI assistants write code that works but isn't always safe: passwords and API keys left in the source (hardcoded secrets), database queries an attacker can rewrite (SQL injection), web apps missing basic protections (security headers). It all runs fine — so it ships.</p>
-      <p>At a company, a security review would catch this before release. On your own, there is no review. <strong>Scout is that check:</strong> it scans your project on your machine, flags the mistakes AI assistants are known to make, and explains every finding in plain English — what it is, why it matters, how to fix it. No security expertise needed.</p>
+      <p>AI assistants write code that works but isn't always safe: passwords and API keys left in the source (hardcoded secrets), database queries an attacker can rewrite (SQL injection), web apps missing basic protections (security headers). It all runs fine, so it ships.</p>
+      <p>At a company, a security review would catch this before release. On your own, there is no review. <strong>Scout is that check:</strong> it scans your project on your machine, flags the mistakes AI assistants are known to make, and explains every finding in plain English: what it is, why it matters, how to fix it. No security expertise needed.</p>
     </div>
   </div>
 </section>
@@ -571,14 +559,14 @@ footer { border-top: 1px solid var(--border); }
         <div class="find-card">
           <div class="find-head"><span class="scanner-name">injection</span><span class="spacer"></span><span class="sev sev-critical">CRITICAL</span></div>
           <p class="plain">Queries and shell commands built from user input.</p>
-          <p class="detail">SQL injection, command injection, eval(), XSS — including f-string and concat-built queries.</p>
+          <p class="detail">SQL injection, command injection, eval(), XSS, including f-string and concat-built queries.</p>
         </div>
       </div>
       <div class="rev">
         <div class="find-card">
           <div class="find-head"><span class="scanner-name">headers</span><span class="spacer"></span><span class="sev sev-lowmed">LOW–MEDIUM</span></div>
           <p class="plain">The framework defaults you never hardened.</p>
-          <p class="detail">Missing security headers in Flask, Django, FastAPI &amp; Express — plus wildcard CORS and missing CSRF.</p>
+          <p class="detail">Missing security headers in Flask, Django, FastAPI &amp; Express, plus wildcard CORS and missing CSRF.</p>
         </div>
       </div>
       <div class="rev">
@@ -589,7 +577,7 @@ footer { border-top: 1px solid var(--border); }
         </div>
       </div>
     </div>
-    <p class="rev"><span class="finds-footnote">Injection &amp; header analysis is idiom-specific to Python and JS/TS · secret detection runs on every common source &amp; config file · dependency scanning covers requirements.txt + package-lock.json</span></p>
+    <p class="rev"><span class="finds-footnote">Secrets are caught in every common source &amp; config file · injection &amp; header checks speak Python and JS/TS · dependency scans cover requirements.txt + package-lock.json</span></p>
   </div>
 </section>
 
@@ -599,7 +587,7 @@ footer { border-top: 1px solid var(--border); }
     <div class="rev">
       <div class="kicker"><span class="num">05</span><span class="label">OUTPUTS</span></div>
       <h2>One scan, three outputs.</h2>
-      <p class="lede">The same scan, read three ways: a plain-English report for you, ready-to-paste fix prompts for your AI, and machine-readable files for automated checks (CI). Scout finds the problem; the AI you already use fixes it.</p>
+      <p class="lede">A plain-English report for you, ready-to-paste fix prompts for your AI, machine-readable files for CI. Scout finds the problem &amp; the AI you already use fixes it.</p>
     </div>
     <div class="rev">
       <div class="engine-stack">
@@ -614,7 +602,7 @@ footer { border-top: 1px solid var(--border); }
         <div class="out-card">
           <span class="for">FOR HUMANS</span>
           <h3>Markdown report</h3>
-          <p>security-report.md — every finding explained in plain English, severity with context, exact fix instructions, and a phased remediation plan.</p>
+          <p>security-report.md explains every finding in plain English, severity with context, exact fix instructions &amp; a phased remediation plan.</p>
           <span class="cmd">$ scout scan ./my-app</span>
         </div>
       </div>
@@ -623,7 +611,7 @@ footer { border-top: 1px solid var(--border); }
         <div class="out-card">
           <span class="for">FOR YOUR AI</span>
           <h3>AI-prompt handoff</h3>
-          <p>Self-contained fix prompts to paste into Cursor, Claude, or Copilot — each one carries the finding, the fix, and a sweep for the same class of issue.</p>
+          <p>Self-contained fix prompts to paste into Cursor, Claude or Copilot. Each one carries the finding, the fix &amp; a sweep for the same class of issue.</p>
           <span class="cmd">$ scout scan . --format ai-prompt</span>
         </div>
       </div>
@@ -632,7 +620,7 @@ footer { border-top: 1px solid var(--border); }
         <div class="out-card">
           <span class="for">FOR CI</span>
           <h3>JSON + SARIF</h3>
-          <p>Machine-readable findings for pipelines and GitHub Code Scanning PR annotations — pipe JSON into your own tooling, upload SARIF to code scanning.</p>
+          <p>Machine-readable findings for pipelines and GitHub Code Scanning PR annotations. Pipe JSON into your own tooling or upload SARIF to code scanning.</p>
           <span class="cmd">$ scout scan . --format sarif -o scout.sarif</span>
         </div>
       </div>
@@ -652,17 +640,17 @@ footer { border-top: 1px solid var(--border); }
       <div class="loop-row">
         <div class="step active" id="step-0">
           <div class="step-head"><span class="num">01</span><span class="name">FIND</span></div>
-          <p>Scout scans locally. Deterministic static analysis — no API key, no signup, zero tokens.</p>
+          <p>Scout scans locally. Deterministic static analysis. No API key, no signup, zero tokens.</p>
         </div>
         <div class="loop-arrow" aria-hidden="true">→</div>
         <div class="step" id="step-1">
           <div class="step-head"><span class="num">02</span><span class="name">FIX</span></div>
-          <p>Your AI applies the fix — paste the prompt, or let your agent call Scout over MCP. It already knows your codebase.</p>
+          <p>Your AI applies the fix. Paste the prompt or let your agent call Scout over MCP. It already knows your codebase.</p>
         </div>
         <div class="loop-arrow" aria-hidden="true">→</div>
         <div class="step" id="step-2">
           <div class="step-head"><span class="num">03</span><span class="name">VERIFY</span></div>
-          <p>The same scan runs again — same findings, zero tokens. Repeat until it reports clean.</p>
+          <p>The same scan runs again. Same findings, zero tokens. Repeat until it reports clean.</p>
         </div>
       </div>
       <div class="loop-note"><span class="sym" aria-hidden="true">↺</span><span>re-checking a fix never costs inference</span></div>
@@ -677,7 +665,7 @@ footer { border-top: 1px solid var(--border); }
     <div class="rev">
       <div class="kicker"><span class="num">07</span><span class="label">MCP</span></div>
       <h2>Connect your AI assistant.</h2>
-      <p class="lede">Run Scout as an MCP tool your agent calls in a scan → fix → rescan loop. Scout finds it; your agent fixes it; Scout re-verifies — deterministic and zero-token, so the loop never burns inference.</p>
+      <p class="lede">Run Scout as an MCP tool your agent calls in a scan → fix → rescan loop. Scout finds it, your agent fixes it &amp; Scout re-verifies. Deterministic and zero-token, so the loop never burns inference.</p>
     </div>
     <div class="connect-grid">
       <div class="rev">
@@ -685,9 +673,9 @@ footer { border-top: 1px solid var(--border); }
           <div class="card-head"><h3>Claude Code</h3><span class="tag">PLUGIN</span></div>
           <button type="button" class="code-block" aria-label="Copy Claude Code plugin commands"><pre>/plugin marketplace add Varpost/Scout
 /plugin install scout@scout</pre><span class="flag"><span class="flag-idle">COPY</span><span class="flag-done">COPIED ✓</span></span></button>
-          <p class="cap">Bundles the MCP server — registers the <code>scan_path</code> tool and <code>/scout-scan</code>. Needs uv on your PATH.</p>
+          <p class="cap">Bundles the MCP server. Registers the <code>scan_path</code> tool &amp; <code>/scout-scan</code>. Needs uv on your PATH.</p>
           <hr class="hr">
-          <span class="oneclick-label">ONE CLICK — CONFIG PRE-FILLED</span>
+          <span class="oneclick-label">ONE CLICK · CONFIG PRE-FILLED</span>
           <div class="connect-btns">
             <span class="grad-border"><a href="vscode:mcp/install?%7B%22name%22%3A%22scout%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22scout-security%5Bmcp%5D%22%2C%22scout-mcp%22%5D%7D">Install in VS Code</a></span>
             <span class="grad-border"><a href="cursor://anysphere.cursor-deeplink/mcp/install?name=scout&amp;config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJzY291dC1zZWN1cml0eVttY3BdIiwic2NvdXQtbWNwIl19">Add to Cursor</a></span>
@@ -708,14 +696,14 @@ footer { border-top: 1px solid var(--border); }
 }</pre><span class="flag"><span class="flag-idle">COPY</span><span class="flag-done">COPIED ✓</span></span></button>
           <p class="cap">No uv? <code>pip install "scout-security[mcp]"</code> and use <code>"command": "scout-mcp"</code> with no args.</p>
           <hr class="hr push">
-          <p class="hosts-line">Cursor · Claude Desktop · Cline · Windsurf · VS Code (.vscode/mcp.json — under a "servers" key)</p>
+          <p class="hosts-line">Cursor · Claude Desktop · Cline · Windsurf · VS Code (.vscode/mcp.json, under a "servers" key)</p>
         </div>
       </div>
     </div>
     <div class="rev">
       <div class="agent-quote">
         <span class="label">THEN TELL YOUR AGENT</span>
-        <span class="q">"Scan this project with Scout, fix every finding, then scan again — repeat until it reports zero."</span>
+        <span class="q">"Scan this project with Scout, fix every finding, then scan again. Repeat until it reports zero."</span>
       </div>
     </div>
   </div>
@@ -732,19 +720,19 @@ footer { border-top: 1px solid var(--border); }
       <div class="rev">
         <div class="pillar">
           <h3>Free &amp; local</h3>
-          <p>No signup, no API keys, zero tokens. Your code never leaves your machine — dependency checks query OSV.dev with package names only.</p>
+          <p>No signup, no API keys, zero tokens. Your code never leaves your machine. Dependency checks query OSV.dev with package names only.</p>
         </div>
       </div>
       <div class="rev">
         <div class="pillar">
           <h3>Built for AI-generated code</h3>
-          <p>Catches the mistakes assistants actually make — leaked keys, string-built SQL, shell=True, missing headers — and hands the fix straight back to your AI.</p>
+          <p>Catches the mistakes assistants actually make: leaked keys, string-built SQL, shell=True, missing headers. Then hands the fix straight back to your AI.</p>
         </div>
       </div>
       <div class="rev">
         <div class="pillar">
           <h3>Deterministic</h3>
-          <p>Same scan, same findings, every run. An optional AI confirmation pass can downgrade false positives — off by default, it only ever sees the flagged snippet, and it fails open.</p>
+          <p>Same scan, same findings, every run. An optional AI confirmation pass can downgrade false positives. Off by default, it only ever sees the flagged snippet &amp; it fails open.</p>
         </div>
       </div>
     </div>
@@ -779,7 +767,7 @@ footer { border-top: 1px solid var(--border); }
         <a class="btn-grad lg" href="https://github.com/Varpost/Scout" target="_blank" rel="noopener">View on GitHub</a>
         <a class="btn-line" href="https://github.com/Varpost/Scout#readme" target="_blank" rel="noopener">Read the docs <span class="ext" aria-hidden="true">↗</span></a>
       </div>
-      <p class="gs-meta">v0.1.7 · PYPI scout-security · MIT — FREE FOREVER</p>
+      <p class="gs-meta">v0.1.7 · PYPI scout-security · MIT · FREE FOREVER</p>
     </div>
   </div>
 </section>
@@ -798,7 +786,7 @@ footer { border-top: 1px solid var(--border); }
       <a href="https://github.com/Varpost/Scout" target="_blank" rel="noopener">GitHub</a>
       <a href="https://pypi.org/project/scout-security/" target="_blank" rel="noopener">PyPI</a>
       <a href="https://github.com/Varpost/Scout#readme" target="_blank" rel="noopener">Docs</a>
-      <span class="mit">MIT — free forever</span>
+      <span class="mit">MIT · free forever</span>
     </div>
   </div>
 </footer>
@@ -871,28 +859,68 @@ footer { border-top: 1px solid var(--border); }
     ['step-0', 'step-1', 'step-2'].forEach(function (id) { document.getElementById(id).classList.remove('active'); });
   }
 
-  /* ---------- Video: click-to-play placeholder (no autoplay, no sound until played) ---------- */
-  var poster = document.getElementById('video-poster');
-  if (poster) {
-    poster.addEventListener('click', function () {
+  /* ---------- Video: play with sound on scroll-into-view, pause on leave, resume in place.
+     Browsers block sound-on autoplay until the page has a user gesture; in that case we
+     start muted and unmute at the first click/keypress anywhere on the page. ---------- */
+  var vid = document.getElementById('pitch-video');
+  if (vid) {
+    vid.addEventListener('error', function () {
       var card = document.getElementById('video-card');
-      var video = document.createElement('video');
-      video.controls = true;
-      video.preload = 'auto';
-      video.setAttribute('playsinline', '');
-      video.src = 'https://github.com/Varpost/Scout/releases/download/v0.1.7/scout-pitch.mp4';
-      video.addEventListener('error', function () {
-        video.remove();
-        var msg = document.createElement('div');
-        msg.className = 'video-missing';
-        msg.innerHTML = '<span class="warn">video failed to load</span><span class="how"><a href="https://github.com/Varpost/Scout/releases/download/v0.1.7/scout-pitch.mp4">watch it directly</a></span>';
-        card.appendChild(msg);
-      });
-      poster.remove();
-      card.appendChild(video);
-      var p = video.play();
-      if (p && p.catch) p.catch(function () {});
+      vid.remove();
+      var msg = document.createElement('div');
+      msg.className = 'video-missing';
+      msg.innerHTML = '<span class="warn">video failed to load</span><span class="how"><a href="https://github.com/Varpost/Scout/releases/download/v0.1.7/scout-pitch.mp4">watch it directly</a></span>';
+      card.appendChild(msg);
     });
+
+    var vidInView = false;
+    var unmuteArmed = false;
+
+    function armGestureUnmute() {
+      if (unmuteArmed) return;
+      unmuteArmed = true;
+      var EVENTS = ['pointerdown', 'keydown', 'touchend', 'wheel'];
+      function teardown() {
+        EVENTS.forEach(function (ev) { window.removeEventListener(ev, unmute, true); });
+      }
+      function unmute() {
+        if (!vid.muted) { teardown(); return; }        /* user already unmuted via controls */
+        if (!vidInView || vid.paused) return;          /* stay armed until it's playing on screen */
+        vid.muted = false;
+        setTimeout(function () {
+          if (vid.paused && vidInView) {               /* browser blocked the unmute (e.g. wheel isn't a gesture) */
+            vid.muted = true;
+            var p = vid.play();
+            if (p && p.catch) p.catch(function () {}); /* stay armed for a real gesture */
+          } else {
+            teardown();                                /* sound is on */
+          }
+        }, 60);
+      }
+      EVENTS.forEach(function (ev) { window.addEventListener(ev, unmute, true); });
+    }
+
+    function tryPlay() {
+      var p = vid.play();
+      if (p && p.catch) p.catch(function () {
+        /* sound autoplay blocked → degrade to muted, unmute on first gesture */
+        vid.muted = true;
+        var p2 = vid.play();
+        if (p2 && p2.catch) p2.catch(function () {});
+        armGestureUnmute();
+      });
+    }
+
+    if (!reduced && 'IntersectionObserver' in window) {
+      var vio = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          vidInView = en.isIntersecting;
+          if (en.isIntersecting) tryPlay();          /* resumes from currentTime */
+          else if (!vid.paused) vid.pause();
+        });
+      }, { threshold: 0.35 });
+      vio.observe(vid);
+    }
   }
 
   /* ---------- Hero terminal: replay the final frame as a typed animation ---------- */
