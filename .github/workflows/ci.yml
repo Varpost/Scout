@@ -128,7 +128,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v8.3.1  # no floating v8 tag exists — pin the exact release
+      - uses: astral-sh/setup-uv@v8.3.2  # no floating v8 tag exists — pin the exact release
 
       - name: uvx --from . runs the scout entry point
         # --fail-on never: this checks the entry point resolves and runs, not
