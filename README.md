@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@v0.1.6
+      - uses: Varpost/Scout@v0.1.7
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -110,7 +110,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.6        # use the latest tag
+    rev: v0.1.7        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -188,7 +188,7 @@ Deep analysis — **injection** (SQL/command/XSS) and **security headers** — t
 ```
 $ scout scan ./my-app
 
-Scout v0.1.6 scanning: ./my-app
+Scout v0.1.7 scanning: ./my-app
 
   Scanning 47 files...
 
