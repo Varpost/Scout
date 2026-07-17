@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -118,6 +119,10 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutco
                 all_findings.extend(findings)
                 progress.update(task, completed=True)
 
+    # Opt-in external engines (semgrep, …), merged after the native scanners.
+    if config.engines:
+        all_findings.extend(_run_engines(path, config, all_findings, quiet=quiet))
+
     # Inline `scout: ignore` comments silence their line's findings.
     all_findings = _apply_inline_suppressions(all_findings)
 
@@ -129,6 +134,39 @@ def run_scout(path: Path, config: ScoutConfig, quiet: bool = False) -> ScanOutco
     all_findings.sort(key=lambda f: severity_rank(f.severity))
 
     return ScanOutcome(findings=_dedupe_findings(all_findings), files_scanned=len(files))
+
+
+def _run_engines(path: Path, config: ScoutConfig, native: list[Finding], quiet: bool = False) -> list[Finding]:
+    """Run the configured external engines and collect their findings.
+
+    A missing binary degrades to one visible stderr note (never a crash), and
+    an engine finding on a line a native scanner already flagged is dropped —
+    the native finding carries Scout's own fix guidance.
+
+    Args:
+        path: Scan target.
+        config: Runtime configuration with resolved engine names.
+        native: Findings from the native scanners, used for dedupe.
+        quiet: Suppress decorative progress output.
+
+    Returns:
+        Engine findings not already covered by a native finding.
+    """
+    from scout.engines import get_engines
+
+    native_lines = {(finding.file, finding.line) for finding in native}
+    merged: list[Finding] = []
+    for engine in get_engines(config.engines):
+        if not engine.available():
+            print(
+                f"scout: engine '{engine.name}' not installed — skipped (install it to include its findings)",
+                file=sys.stderr,
+            )
+            continue
+        if not quiet:
+            console.print(f"  [dim]Running {engine.name} engine...[/dim]")
+        merged.extend(finding for finding in engine.run(path) if (finding.file, finding.line) not in native_lines)
+    return merged
 
 
 def _dedupe_findings(findings: list[Finding]) -> list[Finding]:

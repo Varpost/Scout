@@ -156,6 +156,13 @@ def scan(
         "--exclude",
         help="Path or glob (relative to the scan root) to skip; repeatable. Replaces [tool.scout] exclude.",
     ),
+    engine: list[str] | None = typer.Option(
+        None,
+        "--engine",
+        help="External engine to run and merge into the report (currently: semgrep); repeatable. "
+        "Needs the engine's binary installed — a missing engine is skipped with a note. "
+        "Replaces [tool.scout] engines.",
+    ),
     baseline: Path | None = typer.Option(
         None,
         "--baseline",
@@ -228,8 +235,13 @@ def scan(
             project_path=path,
             cli_exclude=list(exclude) if exclude else None,
             cli_fail_on=fail_on,
+            cli_engines=list(engine) if engine else None,
         )
         get_all_scanners(config.scanners)  # fail fast on unknown scanner names
+        if config.engines:
+            from scout.engines import get_engines
+
+            get_engines(config.engines)  # fail fast on unknown engine names
     except ValueError as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         raise typer.Exit(code=2) from None

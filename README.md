@@ -142,10 +142,22 @@ Or set project defaults in `pyproject.toml` — Scout reads `[tool.scout]` from 
 [tool.scout]
 exclude = ["tests/fixtures", "vendor"]   # paths or glob patterns to skip
 scanners = ["secrets", "injection"]      # run a subset: secrets, injection, headers, deps
+engines = ["semgrep"]                    # external engines to run and merge (optional)
 fail_on = "medium"                       # default threshold for --fail-on
 ```
 
-CLI flags win: `--exclude` replaces the config list, and `--fail-on` overrides `fail_on`.
+CLI flags win: `--exclude` replaces the config list, `--engine` replaces `engines`, and `--fail-on` overrides `fail_on`.
+
+## External Engines (optional)
+
+Scout can orchestrate industrial OSS engines and merge their findings into its report, JSON, and SARIF output — same phased remediation plan, wider coverage:
+
+```bash
+pip install semgrep                # or brew install semgrep
+scout scan . --engine semgrep      # native scanners + semgrep, merged & deduped
+```
+
+Engines are strictly opt-in: the default scan stays zero-dependency and fully deterministic. A requested engine that isn't installed is skipped with a one-line note — never a crash. Engine findings that land on a line a native scanner already flagged are dropped in favor of Scout's own fix guidance.
 
 ## Adopting Scout on an Existing Codebase (Baseline)
 
