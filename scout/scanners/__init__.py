@@ -36,7 +36,7 @@ def get_all_scanners(only: Sequence[str] | None = None) -> list[type[BaseScanner
         ValueError: If ``only`` names a scanner that doesn't exist.
     """
     # Import scanner modules to trigger registration  # noqa: I001
-    from scout.scanners import deps, headers, injection, secrets  # noqa: F401
+    from scout.scanners import custom, deps, headers, injection, secrets  # noqa: F401
 
     if only is None:
         return list(_registry)

@@ -31,6 +31,8 @@ dependencies = [
     "httpx>=0.25.0",
     # .gitignore-aware file collection (gitwildmatch semantics).
     "pathspec>=0.12",
+    # [tool.scout] rules — user-defined YAML detection rules (safe_load only).
+    "pyyaml>=6.0",
     # [tool.scout] config parsing; stdlib tomllib covers 3.11+.
     "tomli>=2.0.1; python_version < '3.11'",
 ]
@@ -54,6 +56,8 @@ dev = [
     "tomli>=2.0.1",
     # MCP server + its stdio test run in CI.
     "mcp>=1.9",
+    # Stubs for the custom-rules YAML loader under strict mypy.
+    "types-PyYAML",
 ]
 
 [project.scripts]
