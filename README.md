@@ -221,6 +221,12 @@ Honest scope: [Gitleaks](https://github.com/gitleaks/gitleaks) and [TruffleHog](
 
 Deep analysis — **injection** (SQL/command/XSS) and **security headers** — targets **Python and JS/TS**, where the detection patterns are idiom-specific. **Secret detection is language-agnostic**: it runs on every common source and config file Scout collects (Go, Java, Ruby, PHP, C/C++, Rust, shell, `.env`, `Dockerfile`, `docker-compose`, Terraform, …), so a hardcoded key is caught whatever language leaked it. Dependency scanning covers `requirements.txt` and `package-lock.json`.
 
+### Measured accuracy
+
+Scout's injection scanner is measured against 104 real CVEs from the [OpenSSF CVE Benchmark](https://github.com/ossf-cve-benchmark/ossf-cve-benchmark) — real vulnerable commits in real JS/TS projects, no synthetic test cases. Full methodology, caveats, and reproduction steps live in [benchmarks/](benchmarks/); results are versioned per release, and this README only ever cites numbers present in a committed results file.
+
+Honest reading of the [v0.1.8 results](benchmarks/results/0.1.8/summary-native.md): command-injection detection is the strongest category (22% precision / 19% recall against CVEs that full taint-analysis engines also find hard); the XSS heuristics are deliberately narrow and noisy on legacy codebases; JS SQL injection through ORM APIs is out of pattern reach today. Adding `--engine semgrep` lifts overall recall to [20.3%](benchmarks/results/0.1.8/summary-native-semgrep.md) (command injection to 29.2%) on the same corpus. The false-positive counts are an upper bound by benchmark convention — unlabeled real issues count against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+
 ## Example Output
 
 ```

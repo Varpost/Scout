@@ -188,6 +188,92 @@ def test_unparseable_python_falls_back_to_regex():
     assert any(f.title == "os.system() call" for f in findings)
 
 
+def test_raw_sql_percent_format_still_detected_in_js():
+    scanner = InjectionScanner()
+    content = 'db.run("SELECT * FROM users WHERE id = %s" % (user_id,));\n'
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert any(f.title == "Raw SQL with string format" for f in findings)
+
+
+# --- XSS constant-value skips and new sinks ---
+
+
+def _scan_js(content: str):
+    return InjectionScanner().scan_file(Path("app.js"), content)
+
+
+def test_constant_innerhtml_is_not_flagged():
+    # A constant can never carry user input — same principle as constant shell=True.
+    for line in (
+        'el.innerHTML = "";\n',
+        "el.innerHTML = '<b>Done!</b>';\n",
+        "el.innerHTML = `<span>static</span>`;\n",
+    ):
+        assert _scan_js(line) == [], line
+
+
+def test_dynamic_innerhtml_still_flagged():
+    for line in (
+        "el.innerHTML = userHtml;\n",
+        'el.innerHTML = "<b>" + name;\n',
+        "el.innerHTML = `hello ${name}`;\n",
+        "el.innerHTML += chunk;\n",
+        "el.innerHTML = '${name}';\n",  # quoted but inside a template literal
+    ):
+        findings = _scan_js(line)
+        assert any("innerHTML" in f.title for f in findings), line
+
+
+def test_outerhtml_dynamic_flagged_constant_not():
+    assert any("outerHTML" in f.title for f in _scan_js("el.outerHTML = widget;\n"))
+    assert _scan_js('el.outerHTML = "<div/>";\n') == []
+
+
+def test_document_write_constant_not_flagged():
+    assert _scan_js('document.write("<hr>");\n') == []
+    assert any("document.write" in f.title for f in _scan_js("document.write(banner);\n"))
+
+
+def test_insert_adjacent_html():
+    flagged = _scan_js("el.insertAdjacentHTML('beforeend', userCard);\n")
+    assert any("insertAdjacentHTML" in f.title for f in flagged)
+    assert _scan_js("el.insertAdjacentHTML('beforeend', '<hr>');\n") == []
+
+
+def test_dangerously_set_inner_html():
+    flagged = _scan_js("<div dangerouslySetInnerHTML={{__html: rawMarkdown}} />\n")
+    assert any("dangerouslySetInnerHTML" in f.title for f in flagged)
+    assert _scan_js('<div dangerouslySetInnerHTML={{__html: "<b>hi</b>"}} />\n') == []
+
+
+def test_jquery_html_sink():
+    assert any(".html()" in f.title for f in _scan_js("$('#out').html(message);\n"))
+    assert _scan_js("$('#out').html();\n") == []  # getter
+    assert _scan_js("$('#out').html('<b>static</b>');\n") == []
+
+
+def test_sql_raw_sink():
+    flagged = _scan_js("db.raw(`SELECT * FROM t WHERE id = ${id}`);\n")
+    assert any(f.title == "SQL raw() with dynamic input" for f in flagged)
+    # The concatenated form is covered by the existing concatenation pattern.
+    flagged = _scan_js('knex.raw("SELECT * FROM t WHERE n = " + name);\n')
+    assert any("SQL" in f.title for f in flagged)
+    assert _scan_js('db.raw("SELECT 1");\n') == []
+
+
+def test_minified_js_scans_in_linear_time():
+    # Regression: the Raw-SQL pattern's unbounded .* gaps backtracked for
+    # MINUTES on single-line minified JS (found via jquery.min.js in the C1
+    # benchmark corpus). This synthetic worst case must stay fast.
+    import time
+
+    scanner = InjectionScanner()
+    chunk = 'a("x",b).delete.c;"q";' * 10_000  # one ~220KB line, quotes + "delete"
+    t0 = time.time()
+    scanner.scan_file(Path("vendor.min.js"), chunk + "\n")
+    assert time.time() - t0 < 5, "pathological minified line must not trigger regex backtracking"
+
+
 # --- Reachability signal (intra-file source→sink) ---
 
 

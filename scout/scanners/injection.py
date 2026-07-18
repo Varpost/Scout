@@ -35,7 +35,14 @@ SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ),
     (
         "Raw SQL with string format",
-        re.compile(r"""['"].*(?:SELECT|INSERT|UPDATE|DELETE).*['"].*%\s*\(""", re.IGNORECASE),
+        # The gaps are bounded to [^'"\n]* on purpose: unbounded .* here was
+        # catastrophic (minutes of backtracking) on single-line minified JS
+        # full of quotes and the word "delete" — found by the C1 benchmark
+        # on jquery.min.js. Quote-free gaps keep the match linear.
+        re.compile(
+            r"""['"][^'"\n]*(?:SELECT|INSERT|UPDATE|DELETE)[^'"\n]*['"]\s*%\s*\(""",
+            re.IGNORECASE,
+        ),
         "SQL query using %-formatting with variables. This is NOT parameterization — "
         "it's string interpolation that allows SQL injection.",
     ),
@@ -50,6 +57,15 @@ SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "SQL query built with a JavaScript template literal. `${...}` interpolation is string "
         "gluing, not parameterization — an attacker can inject `' OR 1=1 --` through any "
         "interpolated value.",
+    ),
+    (
+        "SQL raw() with dynamic input",
+        # ORM escape hatches (knex.raw, sequelize literal, …) fed by template
+        # interpolation. The concatenation form is already caught by the
+        # "SQL string concatenation" pattern above.
+        re.compile(r"""\.raw\s*\(\s*`[^`\n]*\$\{"""),
+        "An ORM raw() escape hatch fed by interpolation or concatenation bypasses the ORM's "
+        "parameterization entirely — this is plain SQL injection.",
     ),
 ]
 
@@ -130,19 +146,56 @@ CMD_PATTERNS_INFO: list[tuple[str, re.Pattern[str], str]] = [
     ),
 ]
 
-# XSS patterns (template/output context)
+# A string literal with nothing user-controlled in it: quoted (no ${ inside —
+# a ${ means we're inside a template literal and the value interpolates) or a
+# backtick template with no interpolation. Each alternative consumes every
+# character exactly once, so lookaheads built from this stay linear-time.
+_CONST_STR = r"""(?:"(?:[^"$\n]|\$(?!\{))*"|'(?:[^'$\n]|\$(?!\{))*'|`(?:[^`$\n]|\$(?!\{))*`)"""  # noqa: E501
+
+# XSS patterns (template/output context). Sink assignments/calls whose value
+# is a pure string literal are skipped — a constant can never carry user
+# input (same principle as the constant shell=True downgrade).
 XSS_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     (
         "innerHTML assignment",
-        re.compile(r"""\.innerHTML\s*=(?!=)"""),
+        # The \s* lives INSIDE the veto lookahead — placed before it, the
+        # engine backtracks \s* to zero width and slips past the veto.
+        re.compile(r"""\.innerHTML\s*\+?=(?!=)(?!\s*""" + _CONST_STR + r"""\s*;?\s*(?:\r?\n|$))"""),
         "Setting innerHTML with dynamic content allows attackers to inject malicious scripts "
         "that steal cookies, redirect users, or deface your app.",
     ),
     (
+        "outerHTML assignment",
+        re.compile(r"""\.outerHTML\s*\+?=(?!=)(?!\s*""" + _CONST_STR + r"""\s*;?\s*(?:\r?\n|$))"""),
+        "Setting outerHTML with dynamic content is the same XSS vector as innerHTML — "
+        "attacker-controlled markup executes scripts in your users' browsers.",
+    ),
+    (
         "document.write()",  # scout: ignore
-        re.compile(r"""document\.write\s*\("""),
+        re.compile(r"""document\.write(?:ln)?\s*\((?!\s*""" + _CONST_STR + r"""\s*[),])"""),
         "document.write() with dynamic content is an XSS vector. "  # scout: ignore
         "Attackers can inject script tags through user-controlled input.",
+    ),
+    (
+        "insertAdjacentHTML with dynamic content",
+        re.compile(r"""\.insertAdjacentHTML\s*\(\s*['"][^'"\n]*['"]\s*,(?!\s*""" + _CONST_STR + r"""\s*\))"""),
+        "insertAdjacentHTML parses its second argument as HTML — dynamic content here is the "
+        "same XSS vector as innerHTML.",
+    ),
+    (
+        "dangerouslySetInnerHTML with dynamic content",
+        re.compile(r"""dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:(?!\s*""" + _CONST_STR + r"""\s*\})"""),
+        "React renders __html without escaping — the 'dangerously' is literal. Dynamic values "
+        "here execute attacker markup unless sanitized first.",
+    ),
+    (
+        "jQuery .html() with dynamic content",
+        # Only clear dynamism evidence: a bare identifier/property argument or
+        # a string literal being concatenated. `.html()` (getter) and
+        # `.html("static")` never match.
+        re.compile(r"""\.html\s*\(\s*(?:[A-Za-z_$][\w.$]*\s*[+)]|['"][^'"\n]*['"]\s*\+)"""),
+        "jQuery .html() parses its argument as HTML. Passing a variable renders unescaped "
+        "user input — use .text() or sanitize first.",
     ),
     (
         "Unescaped template output",
