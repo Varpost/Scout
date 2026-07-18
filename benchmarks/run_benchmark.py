@@ -135,10 +135,22 @@ def scan_findings(path: Path, engines: tuple[str, ...]) -> list[Finding]:
     return run_scout(path, config, quiet=True).findings
 
 
+# Engine rule ids (e.g. semgrep check_id tails) mapped by keyword. A rule id
+# matching no keyword belongs to no category: unrelated rules (crypto, ReDoS,
+# path traversal, …) must neither score nor penalize the injection categories.
+_ENGINE_KEYWORDS = {
+    "sqli": ("sql",),
+    "cmdi": ("command", "child-process", "child_process", "subprocess", "shell", "exec", "spawn", "os-system"),
+    "codei": ("eval", "code-injection", "vm-runin", "function-constructor"),
+    "xss": ("xss", "innerhtml", "inner-html", "dangerously", "document-write", "sanitiz", "html-inject"),
+}
+
+
 def categories_of(finding: Finding) -> set[str]:
-    """Categories a finding may satisfy. Engine findings match any category."""
+    """Categories a finding may satisfy (native titles or engine-rule keywords)."""
     if finding.scanner != "injection":
-        return set(CATEGORY_TITLES)  # engine rule ids don't map onto Scout titles
+        rule = finding.title.lower()
+        return {cat for cat, keywords in _ENGINE_KEYWORDS.items() if any(k in rule for k in keywords)}
     return {cat for cat, titles in CATEGORY_TITLES.items() if finding.title in titles}
 
 

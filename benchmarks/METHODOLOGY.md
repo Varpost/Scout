@@ -33,6 +33,9 @@ intersect what Scout's injection scanner actually attempts:
 - **True positive:** a finding in the same file, within **±2 lines** of the
   label, whose finding title belongs to the CVE's category (title sets are in
   `run_benchmark.py` — a secrets finding can never credit an injection CVE).
+- Engine findings (e.g. semgrep rule ids) map to categories by rule-id
+  keyword (`_ENGINE_KEYWORDS`); a rule matching no keyword belongs to no
+  category, so unrelated engine rules neither score nor penalize.
 - **False negative:** a labeled weakness with no matching finding.
 - **False positive:** any claim-area finding in a scanned repo that matches no
   label.
