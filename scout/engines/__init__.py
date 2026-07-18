@@ -73,7 +73,7 @@ def get_engines(only: Sequence[str]) -> list[BaseEngine]:
         ValueError: If a name doesn't match a registered engine.
     """
     # Import engine modules to trigger registration  # noqa: I001
-    from scout.engines import semgrep  # noqa: F401
+    from scout.engines import codeql, semgrep  # noqa: F401
 
     known = {cls.name for cls in _registry}
     unknown = sorted(set(only) - known)

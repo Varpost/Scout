@@ -159,7 +159,7 @@ def scan(
     engine: list[str] | None = typer.Option(
         None,
         "--engine",
-        help="External engine to run and merge into the report (currently: semgrep); repeatable. "
+        help="External engine to run and merge into the report (currently: semgrep, codeql); repeatable. "
         "Needs the engine's binary installed — a missing engine is skipped with a note. "
         "Replaces [tool.scout] engines.",
     ),
