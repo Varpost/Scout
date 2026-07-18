@@ -129,6 +129,20 @@ CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "spawn() with shell:true routes the command through a shell, re-enabling the exact "
         "injection risk spawn's argument-array form exists to prevent.",
     ),
+    (
+        "Function constructor with dynamic code",
+        # eval by another name (OWASP code-injection sink list). All-string-
+        # literal argument lists (a common perf idiom) are vetoed.
+        re.compile(r"""\bnew\s+Function\s*\(\s*(?!(?:['"][^'"\n]*['"]\s*,?\s*)*\))"""),
+        "The Function constructor compiles strings into executable code — eval by another "  # scout: ignore
+        "name. Any user-influenced string here runs as arbitrary code.",
+    ),
+    (
+        "vm.runInContext with dynamic code",
+        re.compile(r"""\bvm\.runIn(?:New|This)?Context\s*\(\s*(?!""" + r"""(?:"[^"$\n]*"|'[^'$\n]*')\s*[),])"""),
+        "Node's vm module executes its string argument as code. Sandboxes in vm are not a "
+        "security boundary — user input reaching this call is code injection.",
+    ),
 ]
 
 # Informational: shell=True on a constant string is a bad habit, not an
@@ -203,6 +217,135 @@ XSS_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "Template rendering without HTML escaping. User input will be rendered as raw HTML, allowing script injection.",
     ),
 ]
+
+
+# --- JS taint: lexical, line-ordered, intra-file ---
+# The stdlib has no JS parser, so this is deliberately not an AST: a single
+# forward pass over lines builds a name→taint map (same True/False/None
+# semantics as the Python env below), which then (a) gates the ORM/NoSQL and
+# tainted-identifier sinks — those fire ONLY on taint evidence — and
+# (b) attaches `reachable` to the regex findings, dropping XSS hits whose
+# value is provably an in-file constant.
+
+_JS_TAINT_SUFFIXES = frozenset({".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"})
+
+# Untrusted-input reads: the OWASP DOM-XSS source list plus the standard
+# Node/Express/Koa request surfaces.
+_JS_SOURCE = re.compile(
+    r"""\b(?:req|request|ctx)\.(?:body|query|params|headers|cookies)\b"""
+    r"""|(?:\bwindow\.)?\blocation\.(?:hash|search|href|pathname)\b"""
+    r"""|\bdocument\.(?:URL|documentURI|referrer|cookie)\b"""
+    r"""|\bprocess\.(?:argv|env)\b|\bwindow\.name\b"""
+)
+
+_JS_DECL = re.compile(
+    r"""^\s*(?:const|let|var)\s+(?P<target>[A-Za-z_$][\w$]*)(?:\s*:\s*[^=\n]+?)?\s*=\s*(?P<rhs>\S.*)$"""
+)
+_JS_DESTRUCT = re.compile(r"""^\s*(?:const|let|var)\s*[{\[]\s*(?P<names>[^}\]]*)[}\]]\s*=\s*(?P<rhs>\S.*)$""")
+_JS_REASSIGN = re.compile(r"""^\s*(?P<target>[A-Za-z_$][\w$]*)\s*\+?=(?!=)\s*(?P<rhs>\S.*)$""")
+# Root identifiers only — the lookbehind drops property names (`a.b` taints
+# by `a`) and object keys are stripped separately before matching.
+_JS_IDENT = re.compile(r"""(?<![\w$.])[A-Za-z_$][\w$]*""")
+_JS_OBJECT_KEY = re.compile(r"""[\w$]+\s*:""")
+_JS_CONST_RHS = re.compile(r"""^(?:""" + _CONST_STR + r"""|\d+(?:\.\d+)?|true|false|null|undefined)\s*;?\s*$""")
+_JS_KEYWORDS = frozenset(
+    """await new typeof void delete this true false null undefined function return if else for while do switch
+    case break continue in of instanceof let const var async yield class extends super import export default
+    document window console Math JSON String Number Boolean Array Object RegExp Date Promise require module""".split()
+)
+
+# ponytail: skip minified lines and use one flat namespace (no scopes), same
+# as the Python env — upgrade to a real JS parser only if the benchmark shows
+# this ceiling matters.
+_JS_MAX_LINE = 500
+
+# MongoDB-style query APIs where a user-controlled *value* is injectable even
+# with zero SQL text: a request value that arrives as an object turns into an
+# operator injection ({"$gt": ""} matches everything — see PortSwigger/OWASP
+# NoSQL injection). SQL query builders (knex .where etc.) parameterize their
+# values and are deliberately NOT in this list. The lookahead vetoes callback
+# arguments so Array.prototype.find(x => …) never matches.
+_JS_NOSQL_SINK = re.compile(
+    r"""\.(?:find|findOne(?:And\w+)?|deleteOne|deleteMany|updateOne|updateMany)\s*\("""
+    r"""(?!\s*(?:function\b|\([^)\n]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>))(?P<args>[^)\n]*)"""
+)
+# A bare identifier as the query/command string itself — dangerous only when
+# that identifier traces to a source, so these are taint-gated too.
+_JS_QUERY_IDENT_SINK = re.compile(r"""\.(?:query|execute)\s*\(\s*(?P<first>[A-Za-z_$][\w$]*)\s*[,)]""")
+_JS_EXEC_IDENT_SINK = re.compile(r"""(?<![\w.])exec(?:Sync)?\s*\(\s*(?P<first>[A-Za-z_$][\w$]*)\s*[,)]""")
+
+_JS_NOSQL_DESCRIPTION = (
+    "A request-controlled value flows into a MongoDB-style query. If it arrives as an "
+    'object instead of a string ({"$gt": ""}), it becomes a query operator — matching '
+    "every document, bypassing logins or password-reset checks. Validate the type/shape "
+    "before querying (e.g. reject non-strings) or wrap values in $eq."
+)
+_JS_QUERY_IDENT_DESCRIPTION = (
+    "The query text itself comes from user input. This is SQL injection regardless of "
+    "parameterized values — the attacker writes the statement. Build queries from "
+    "constants and pass user data only as bound parameters."
+)
+_JS_EXEC_IDENT_DESCRIPTION = (
+    "The command passed to exec() traces back to user input in this file — attackers "
+    "can append `; rm -rf /` or any shell command. Use execFile/spawn with an "
+    "argument array, or validate against an allowlist."
+)
+
+
+def _js_rhs_state(rhs: str, env: dict[str, bool | None]) -> bool | None:
+    """Taint state of a right-hand side: source/tainted, constant, or unknown."""
+    if _JS_SOURCE.search(rhs):
+        return True
+    names = [n for n in _JS_IDENT.findall(rhs) if n not in _JS_KEYWORDS]
+    if any(env.get(n) is True for n in names):
+        return True
+    if _JS_CONST_RHS.match(rhs):
+        return False
+    return None
+
+
+def _js_taint_env(lines: list[str]) -> dict[str, bool | None]:
+    """Map JS names to taint state via one forward pass over declarations."""
+    env: dict[str, bool | None] = {}
+
+    def record(name: str, state: bool | None) -> None:
+        if name not in env:
+            env[name] = state
+        elif env[name] is True or state is True:
+            env[name] = True  # once tainted, always tainted
+        elif env[name] != state:
+            env[name] = None  # conflicting evidence — undetermined
+
+    for line in lines:
+        if len(line) > _JS_MAX_LINE:
+            continue
+        destruct = _JS_DESTRUCT.match(line)
+        if destruct:
+            state = _js_rhs_state(destruct.group("rhs"), env)
+            for part in destruct.group("names").split(","):
+                # `a` binds a; `a: b` binds b; `a = fallback` binds a;
+                # `...rest` binds rest — the bound name is the last
+                # identifier before any default value.
+                names = _JS_IDENT.findall(part.split("=")[0])
+                if names:
+                    record(names[-1], state)
+            continue
+        decl = _JS_DECL.match(line) or _JS_REASSIGN.match(line)
+        if decl:
+            record(decl.group("target"), _js_rhs_state(decl.group("rhs"), env))
+    return env
+
+
+def _js_reachable(text: str, env: dict[str, bool | None]) -> bool | None:
+    """Classify a sink expression against the taint env (True/False/None)."""
+    if _JS_SOURCE.search(text):
+        return True
+    names = [n for n in _JS_IDENT.findall(text) if n not in _JS_KEYWORDS]
+    if any(env.get(n) is True for n in names):
+        return True
+    if names and all(env.get(n) is False for n in names):
+        return False
+    return None
 
 
 # Titles the AST pass shares with the regex patterns reuse their descriptions.
@@ -485,7 +628,8 @@ class InjectionScanner(BaseScanner):
     def scan_file(self, file_path: Path, content: str) -> list[Finding]:
         """Scan for injection vulnerabilities — AST for Python, regex otherwise."""
         lines = content.splitlines()
-        if file_path.suffix.lower() == ".py":
+        suffix = file_path.suffix.lower()
+        if suffix == ".py":
             try:
                 tree: ast.Module | None = ast.parse(content)
             except (SyntaxError, ValueError):  # not valid Python 3 — regex still applies
@@ -496,13 +640,17 @@ class InjectionScanner(BaseScanner):
                 findings.extend(self._scan_regex(file_path, content, lines, [(XSS_PATTERNS, "HIGH", 4)]))
                 return findings
 
+        env = _js_taint_env(lines) if suffix in _JS_TAINT_SUFFIXES else None
         all_patterns = [
             (SQL_PATTERNS, "CRITICAL", 4),  # (patterns, severity, fix_phase)
             (CMD_PATTERNS, "CRITICAL", 4),
             (CMD_PATTERNS_INFO, "LOW", 1),
             (XSS_PATTERNS, "HIGH", 4),
         ]
-        return self._scan_regex(file_path, content, lines, all_patterns)
+        findings = self._scan_regex(file_path, content, lines, all_patterns, env=env)
+        if env is not None:
+            findings.extend(self._scan_js_taint_sinks(file_path, lines, env))
+        return findings
 
     def _finding(
         self,
@@ -546,8 +694,15 @@ class InjectionScanner(BaseScanner):
         content: str,
         lines: list[str],
         pattern_groups: list[tuple[list[tuple[str, re.Pattern[str], str]], str, int]],
+        env: dict[str, bool | None] | None = None,
     ) -> list[Finding]:
-        """Run the given regex pattern groups over the file content."""
+        """Run the given regex pattern groups over the file content.
+
+        With a JS taint env, each finding gets a ``reachable`` verdict from
+        the sink expression's identifiers; XSS findings whose value is
+        provably an in-file constant are dropped entirely — a constant can
+        never carry user input.
+        """
         findings: list[Finding] = []
         for pattern_group, severity, fix_phase in pattern_groups:
             for title, regex, description in pattern_group:
@@ -560,5 +715,48 @@ class InjectionScanner(BaseScanner):
                     if stripped.startswith(("#", "//", "*", "/*")):
                         continue
 
-                    findings.append(self._finding(file_path, lines, line_num, title, description, severity, fix_phase))
+                    reachable: bool | None = None
+                    if env is not None and len(line_text) <= _JS_MAX_LINE:
+                        col = match.start() - (content.rfind("\n", 0, match.start()) + 1)
+                        reachable = _js_reachable(line_text[col:], env)
+                        if reachable is False and pattern_group is XSS_PATTERNS:
+                            continue
+
+                    findings.append(
+                        self._finding(file_path, lines, line_num, title, description, severity, fix_phase, reachable)
+                    )
+        return findings
+
+    def _scan_js_taint_sinks(self, file_path: Path, lines: list[str], env: dict[str, bool | None]) -> list[Finding]:
+        """Sinks that fire only on taint evidence — never on pattern shape alone."""
+        findings: list[Finding] = []
+        for line_num, line in enumerate(lines, start=1):
+            if len(line) > _JS_MAX_LINE or line.lstrip().startswith(("#", "//", "*", "/*")):
+                continue
+            for match in _JS_NOSQL_SINK.finditer(line):
+                # Object keys are labels, not data — {email: code} taints by
+                # `code`, and shorthand {email} taints by `email`.
+                args = _JS_OBJECT_KEY.sub("", match.group("args"))
+                if _js_reachable(args, env) is True:
+                    findings.append(
+                        self._finding(
+                            file_path,
+                            lines,
+                            line_num,
+                            "NoSQL query with user-controlled value",
+                            _JS_NOSQL_DESCRIPTION,
+                            "HIGH",
+                            4,
+                            reachable=True,
+                        )
+                    )
+            for sink, title, description in (
+                (_JS_QUERY_IDENT_SINK, "SQL query with user-controlled string", _JS_QUERY_IDENT_DESCRIPTION),
+                (_JS_EXEC_IDENT_SINK, "exec() with user-controlled command", _JS_EXEC_IDENT_DESCRIPTION),
+            ):
+                for match in sink.finditer(line):
+                    if env.get(match.group("first")) is True:
+                        findings.append(
+                            self._finding(file_path, lines, line_num, title, description, "CRITICAL", 4, reachable=True)
+                        )
         return findings

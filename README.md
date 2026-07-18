@@ -213,13 +213,13 @@ Honest scope: [Gitleaks](https://github.com/gitleaks/gitleaks) and [TruffleHog](
 | Scanner | Detects | Severity |
 |---------|---------|----------|
 | `secrets` | AWS/Google keys, GitHub/GitLab tokens, Anthropic & OpenAI keys, Slack/npm/PyPI tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
-| `injection` | SQL injection, command injection, eval(), XSS | CRITICAL |
+| `injection` | SQL injection, NoSQL operator injection, command injection, eval()/Function/vm, XSS | CRITICAL |
 | `headers` | Missing security headers (Express/Flask/Django/FastAPI), wildcard CORS, missing CSRF | LOW–MEDIUM |
 | `deps` | Known vulnerabilities in pip + npm dependencies (via OSV.dev) | HIGH |
 
 ### Language scope
 
-Deep analysis — **injection** (SQL/command/XSS) and **security headers** — targets **Python and JS/TS**, where the detection patterns are idiom-specific. **Secret detection is language-agnostic**: it runs on every common source and config file Scout collects (Go, Java, Ruby, PHP, C/C++, Rust, shell, `.env`, `Dockerfile`, `docker-compose`, Terraform, …), so a hardcoded key is caught whatever language leaked it. Dependency scanning covers `requirements.txt` and `package-lock.json`.
+Deep analysis — **injection** (SQL/command/XSS) and **security headers** — targets **Python and JS/TS**, where the detection patterns are idiom-specific. Both languages get intra-file **taint tracking** (Python via the stdlib AST, JS/TS via a lexical pass): findings carry a `reachable` verdict when a sink traces back to user input (`request.*`, `req.body`, `location.hash`, …), ORM/NoSQL sinks fire *only* on taint evidence, and XSS sinks fed by provable in-file constants are dropped instead of reported. **Secret detection is language-agnostic**: it runs on every common source and config file Scout collects (Go, Java, Ruby, PHP, C/C++, Rust, shell, `.env`, `Dockerfile`, `docker-compose`, Terraform, …), so a hardcoded key is caught whatever language leaked it. Dependency scanning covers `requirements.txt` and `package-lock.json`.
 
 ### Measured accuracy
 

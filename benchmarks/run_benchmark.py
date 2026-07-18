@@ -43,6 +43,8 @@ CATEGORY_TITLES = {
         "Raw SQL with string format",
         "SQL template literal",
         "SQL raw() with dynamic input",
+        "NoSQL query with user-controlled value",
+        "SQL query with user-controlled string",
     },
     "cmdi": {
         "shell=True with dynamic command",
@@ -53,12 +55,16 @@ CATEGORY_TITLES = {
         "exec() with string concatenation",
         "child_process exec with variable command",
         "spawn() with shell:true",
+        "exec() with user-controlled command",
     },
     "codei": {
         "eval() usage",
         "exec() usage",
         "exec() with template literal",
         "exec() with string concatenation",
+        "exec() with user-controlled command",
+        "Function constructor with dynamic code",
+        "vm.runInContext with dynamic code",
     },
     "xss": {
         "innerHTML assignment",

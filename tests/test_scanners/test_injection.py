@@ -322,3 +322,105 @@ def test_reachable_surfaces_in_json_and_report(tmp_path):
     report_path = tmp_path / "report.md"
     generate_report(findings, report_path)
     assert "Reachable from untrusted input" in report_path.read_text(encoding="utf-8")
+
+
+# --- JS lexical taint tracking ---
+
+
+def _scan_js(content: str):
+    return InjectionScanner().scan_file(Path("app.js"), content)
+
+
+def test_js_nosql_sink_with_tainted_destructured_value():
+    content = "const { email } = req.body;\nconst user = await User.findOne({ email });\n"
+    findings = _scan_js(content)
+    assert [f.title for f in findings] == ["NoSQL query with user-controlled value"]
+    assert findings[0].reachable is True
+    assert findings[0].line == 2
+
+
+def test_js_nosql_sink_with_constant_value_is_not_flagged():
+    assert _scan_js('const user = await User.findOne({ email: "admin@x.io" });\n') == []
+
+
+def test_js_nosql_sink_tainted_object_value():
+    content = "const code = ctx.query.code;\nawait strapi.query().findOne({ resetPasswordToken: code });\n"
+    findings = _scan_js(content)
+    assert [f.title for f in findings] == ["NoSQL query with user-controlled value"]
+
+
+def test_js_array_find_callback_is_not_flagged():
+    content = "const id = req.params.id;\nconst hit = users.find(u => u.id === id);\n"
+    assert _scan_js(content) == []
+
+
+def test_js_query_with_tainted_string_is_flagged():
+    content = "const sql = req.body.sql;\ndb.query(sql, []);\n"
+    findings = _scan_js(content)
+    assert [f.title for f in findings] == ["SQL query with user-controlled string"]
+    assert findings[0].severity == "CRITICAL"
+
+
+def test_js_query_with_untainted_variable_is_not_flagged():
+    # Parameterized call whose query text never touches user input — the
+    # taint gate must keep this quiet even though the arg is a variable.
+    content = 'const sql = "SELECT 1";\npool.query(sql, [req.body.id]);\n'
+    assert _scan_js(content) == []
+
+
+def test_js_exec_with_tainted_command_via_propagation():
+    content = 'const q = req.query.q;\nconst cmd = "ping " + q;\nexec(cmd);\n'
+    findings = _scan_js(content)
+    assert [f.title for f in findings] == ["exec() with user-controlled command"]
+    assert findings[0].reachable is True
+
+
+def test_js_eval_of_tainted_name_is_reachable():
+    content = "const code = location.hash.slice(1);\neval(code);\n"
+    findings = _scan_js(content)
+    assert [f.title for f in findings] == ["eval() usage"]
+    assert findings[0].reachable is True
+
+
+def test_js_innerhtml_with_provable_constant_is_dropped():
+    content = "const template = '<b>hi</b>';\nel.innerHTML = template;\n"
+    assert _scan_js(content) == []
+
+
+def test_js_innerhtml_with_unknown_name_is_kept_undetermined():
+    findings = _scan_js("el.innerHTML = data;\n")
+    assert [f.title for f in findings] == ["innerHTML assignment"]
+    assert findings[0].reachable is None
+
+
+def test_js_innerhtml_with_tainted_name_is_reachable():
+    content = "const q = req.query.q;\nel.innerHTML = q;\n"
+    findings = _scan_js(content)
+    assert [f.title for f in findings] == ["innerHTML assignment"]
+    assert findings[0].reachable is True
+
+
+def test_js_typescript_annotation_still_tracks_taint():
+    content = "const x: string = req.query.q;\neval(x);\n"
+    findings = InjectionScanner().scan_file(Path("app.ts"), content)
+    assert findings and findings[0].reachable is True
+
+
+def test_js_function_constructor_dynamic_vs_literal():
+    assert [f.title for f in _scan_js('new Function("return " + x);\n')] == ["Function constructor with dynamic code"]
+    assert _scan_js('const add = new Function("a", "b", "return a + b");\n') == []
+
+
+def test_js_vm_runincontext_is_flagged():
+    findings = _scan_js("vm.runInNewContext(payload, sandbox);\n")
+    assert [f.title for f in findings] == ["vm.runInContext with dynamic code"]
+
+
+def test_js_taint_skips_minified_lines():
+    # A minified line must not feed the taint env: `a` is assigned from
+    # req.body inside it, but the line is skipped, so using `a` at a sink
+    # stays undetermined rather than becoming a confident CRITICAL.
+    long_line = "var a=req.body.x;f(a);" * 100  # > _JS_MAX_LINE, single line
+    content = long_line + "\nel.innerHTML = a;\n"
+    line2 = [f for f in _scan_js(content) if f.line == 2]
+    assert [f.reachable for f in line2] == [None]
