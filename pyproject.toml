@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scout-security"
-version = "0.1.7"
+version = "0.1.8"
 description = "AI security team in a CLI. Find, plan, fix, and verify vulnerabilities — free, local, no signup."
 readme = "README.md"
 license = {text = "MIT"}
@@ -108,6 +108,9 @@ ignore = ["S101"]
 # T0.10 gitpython removal stands. Its tests build real temp repos the same way.
 "scout/git_history.py" = ["S603", "S607"]
 "tests/test_git_history.py" = ["S603", "S607"]
+# scan_diff shells out to git the same way; its tests build real temp repos.
+"scout/mcp_server.py" = ["S603", "S607"]
+"tests/test_mcp_server.py" = ["S603", "S607"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -360,5 +360,71 @@ def scan(
         raise typer.Exit() from None
 
 
+@app.command()
+def fix(
+    path: Path = typer.Argument(
+        ".",
+        help="Path to the project to fix.",
+        exists=True,
+        resolve_path=True,
+    ),
+    exclude: list[str] | None = typer.Option(
+        None,
+        "--exclude",
+        help="Path or glob (relative to the scan root) to skip; repeatable. Replaces [tool.scout] exclude.",
+    ),
+) -> None:
+    """Apply zero-risk fixes for phase-1 findings — each one shown as a diff and confirmed.
+
+    Scope is the mechanical class only: hardcoded secrets in Python files move
+    to a gitignored .env + os.environ lookup, and vulnerable requirements.txt
+    pins bump to the first fixed release. Nothing is written without a yes.
+    """
+    from scout.agents.scout_agent import run_scout
+    from scout.config import load_config
+    from scout.fix import apply_fix, plan_fixes, render_diff, verify_fix
+
+    try:
+        config = load_config(project_path=path, cli_exclude=list(exclude) if exclude else None)
+    except ValueError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(code=2) from None
+
+    console.print(f"\n[bold blue]Scout v{__version__}[/bold blue] scanning for fixable findings: {path}\n")
+    outcome = run_scout(path, config)
+    root = path if path.is_dir() else path.parent
+    proposals = plan_fixes(outcome.findings, root)
+
+    if not proposals:
+        console.print(
+            f"[bold green]No auto-fixable findings.[/bold green] "
+            f"({len(outcome.findings)} finding(s) total — run `scout scan` for the full report.)\n"
+        )
+        raise typer.Exit()
+
+    applied = 0
+    for index, proposal in enumerate(proposals, start=1):
+        console.print(f"[bold]{index}/{len(proposals)}[/bold] {proposal.summary}")
+        console.print(render_diff(proposal), markup=False, highlight=False)
+        if not typer.confirm("Apply this fix?", default=False):
+            console.print("[dim]Skipped.[/dim]\n")
+            continue
+        try:
+            apply_fix(proposal)
+        except OSError as exc:
+            console.print(f"[bold red]Error:[/bold red] could not write fix: {exc}\n")
+            continue
+        applied += 1
+        if verify_fix(proposal):
+            console.print("[bold green]Applied — re-scan clean for this finding.[/bold green]")
+        else:
+            console.print("[bold yellow]Applied, but the finding still triggers — review manually.[/bold yellow]")
+        if proposal.warning:
+            console.print(f"[yellow]⚠ {proposal.warning}[/yellow]")
+        console.print()
+
+    console.print(f"[bold]{applied}[/bold] of {len(proposals)} fix(es) applied. Re-run `scout scan` to verify.\n")
+
+
 if __name__ == "__main__":
     app()
