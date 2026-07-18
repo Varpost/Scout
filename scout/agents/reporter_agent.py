@@ -102,6 +102,9 @@ ready-to-paste fix prompt for your AI assistant. Start with Phase 1 — those fi
 
 **File:** `{{ finding.file }}:{{ finding.line }}`
 **Phase:** {{ finding.fix_phase }} | **Scanner:** {{ finding.scanner }}
+{%- if finding.reachable is sameas true %} | ⚡ **Reachable from untrusted input**
+{%- elif finding.reachable is sameas false %} | 🧊 Not fed by untrusted input (this file)
+{%- endif %}
 
 {{ finding.description }}
 
@@ -237,6 +240,8 @@ def finding_to_dict(finding: Finding) -> dict[str, object]:
         "explanation": finding.description,
         "fix_guidance": finding.fix_summary,
         "references": _references_for(finding),
+        # A3 reachability signal: true/false/null (null = undetermined or N/A).
+        "reachable": finding.reachable,
     }
 
 

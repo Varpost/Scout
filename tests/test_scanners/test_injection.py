@@ -186,3 +186,53 @@ def test_unparseable_python_falls_back_to_regex():
     content = 'os.system("ls " + user_input)\nthis is not valid python !!!\n'
     findings = scanner.scan_file(Path("legacy.py"), content)
     assert any(f.title == "os.system() call" for f in findings)
+
+
+# --- Reachability signal (intra-file source→sink) ---
+
+
+def _scan_py(content: str):
+    return InjectionScanner().scan_file(Path("app.py"), content)
+
+
+def test_sink_fed_by_request_args_is_reachable():
+    findings = _scan_py('cmd = request.args.get("cmd")\nos.system(cmd)\n')
+    assert [f.reachable for f in findings] == [True]
+
+
+def test_sink_fed_directly_by_source_is_reachable():
+    for content in (
+        'os.system(request.form["c"])\n',
+        "eval(input())\n",
+        "subprocess.run(sys.argv[1], shell=True)\n",
+        'db.execute(f"SELECT * FROM t WHERE k = {os.environ[key]}")\n',
+    ):
+        findings = _scan_py(content)
+        assert findings and findings[0].reachable is True, content
+
+
+def test_sink_fed_by_constant_is_not_reachable():
+    findings = _scan_py('cmd = "ls -la"\nsubprocess.run(cmd, shell=True)\n')
+    assert [f.reachable for f in findings] == [False]
+
+
+def test_sink_with_unknown_name_is_undetermined():
+    findings = _scan_py("result = eval(user_input)\n")
+    assert [f.reachable for f in findings] == [None]
+
+
+def test_tainted_wins_over_later_constant_assignment():
+    content = 'cmd = request.args.get("cmd")\ncmd = "ls"\nos.system(cmd)\n'
+    findings = _scan_py(content)
+    assert [f.reachable for f in findings] == [True]
+
+
+def test_reachable_surfaces_in_json_and_report(tmp_path):
+    from scout.agents.reporter_agent import finding_to_dict, generate_report
+
+    findings = _scan_py('cmd = request.args.get("cmd")\nos.system(cmd)\n')
+    assert finding_to_dict(findings[0])["reachable"] is True
+
+    report_path = tmp_path / "report.md"
+    generate_report(findings, report_path)
+    assert "Reachable from untrusted input" in report_path.read_text(encoding="utf-8")
