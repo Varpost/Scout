@@ -18,6 +18,11 @@ the scan mode:
 | Scout native v0.1.11 (member-exec + bundle skip) | **39.6%** | 21.3% | 9.7% | 25.0% | **24.7%** | **2.4%** |
 | Scout `--engine semgrep` v0.1.11 | **41.7%** | 24.0% | 12.9% | 25.0% | **27.2%** | 2.6% |
 
+v0.1.12 adds **path traversal (CWE-22)** and **SSRF (CWE-918)** detection —
+new vulnerability classes this injection-only corpus does not score, so the
+rows above are unchanged by them (verified: identical TP/FP/FN). They are
+taint-gated, adding real-world coverage without touching these numbers.
+
 Two deliberate levers moved v0.1.10 → v0.1.11, both first-principles rather
 than corpus-tuned:
 

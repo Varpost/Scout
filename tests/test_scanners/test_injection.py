@@ -479,3 +479,60 @@ def test_python_with_long_line_is_not_minified_skipped():
     content = 'x = "' + "y" * 2500 + '"\nos.system(cmd)\n'
     findings = InjectionScanner().scan_file(Path("app.py"), content)
     assert any(f.title == "os.system() call" for f in findings)
+
+
+# --- Path traversal (OWASP A01) + SSRF (OWASP A10), taint-gated (D5) ---
+
+
+def test_py_path_traversal_taint_gated():
+    findings = _scan_py('f = request.args["file"]\nopen(f)\n')
+    assert [(f.title, f.reachable) for f in findings] == [("Path traversal", True)]
+
+
+def test_py_open_constant_path_is_not_flagged():
+    assert _scan_py('open("config.json")\n') == []
+
+
+def test_py_send_from_directory_uses_filename_arg():
+    findings = _scan_py('name = request.args["name"]\nsend_from_directory(BASE, name)\n')
+    assert any(f.title == "Path traversal" for f in findings)
+
+
+def test_py_ssrf_taint_gated():
+    findings = _scan_py('u = request.args["url"]\nrequests.get(u)\n')
+    assert [(f.title, f.reachable) for f in findings] == [("Server-side request forgery (SSRF)", True)]
+
+
+def test_py_ssrf_constant_url_is_not_flagged():
+    assert _scan_py('requests.get("https://api.example.com/health")\n') == []
+
+
+def test_py_urlopen_bare_is_ssrf():
+    findings = _scan_py('from urllib.request import urlopen\nu = request.args["u"]\nurlopen(u)\n')
+    assert any(f.title == "Server-side request forgery (SSRF)" for f in findings)
+
+
+def test_js_path_traversal_taint_gated():
+    findings = _scan_js("const p = req.query.file;\nfs.readFileSync(p);\n")
+    assert [(f.title, f.reachable) for f in findings] == [("Path traversal", True)]
+
+
+def test_js_sendfile_constant_is_not_flagged():
+    assert _scan_js('res.sendFile("./index.html");\n') == []
+
+
+def test_js_ssrf_axios_and_fetch_tainted():
+    for content in ("const u = req.query.url;\naxios.get(u);\n", "fetch(req.body.target);\n"):
+        findings = _scan_js(content)
+        assert any(f.title == "Server-side request forgery (SSRF)" for f in findings), content
+
+
+def test_js_map_get_is_not_ssrf():
+    # .get on a non-client receiver must never be an SSRF false positive.
+    assert _scan_js("const v = cache.get(req.query.id);\n") == []
+
+
+def test_new_categories_are_high_severity_phase_4():
+    findings = _scan_py('p = request.args["p"]\nopen(p)\n')
+    assert findings[0].severity == "HIGH"
+    assert findings[0].fix_phase == 4
