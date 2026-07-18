@@ -53,6 +53,11 @@ intersect what Scout's injection scanner actually attempts:
 - **Scout's XSS checks are narrow by design** (innerHTML / document.write /
   unescaped templates). Expect low recall on the `xss` category — the corpus'
   XSS CVEs span far more sink types. This is documented scope, not a surprise.
+- **Minified/bundled files are skipped by the injection scanner** (`*.min.js`,
+  `*.bundle.js`, or any line over 2000 chars) — generated artifacts are the
+  dependency scanner's concern, not hand-fixable source. A handful of corpus
+  weaknesses live only in vendored bundles and are therefore counted as
+  misses; this is a deliberate precision/utility trade, not an oversight.
 - **No tuning against this corpus.** Detection changes must cite a motivating
   case from elsewhere; using corpus repos to fix a miss overfits the number.
 - **Corpus rot:** some pinned repositories have been deleted from GitHub

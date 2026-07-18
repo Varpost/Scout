@@ -420,7 +420,62 @@ def test_js_taint_skips_minified_lines():
     # A minified line must not feed the taint env: `a` is assigned from
     # req.body inside it, but the line is skipped, so using `a` at a sink
     # stays undetermined rather than becoming a confident CRITICAL.
-    long_line = "var a=req.body.x;f(a);" * 100  # > _JS_MAX_LINE, single line
+    long_line = "var a=req.body.x;f(a);" * 27  # > _JS_MAX_LINE (594), < file-minified 2000
     content = long_line + "\nel.innerHTML = a;\n"
     line2 = [f for f in _scan_js(content) if f.line == 2]
     assert [f.reachable for f in line2] == [None]
+
+
+# --- child_process member-call command injection (D4) ---
+
+
+def test_js_member_exec_with_callback_is_flagged():
+    for content in (
+        'cp.exec("ps " + args, function (err, out) {});\n',
+        "shell.exec(cmd, { silent: true });\n",
+        "exec(combineCommand, function (err) {});\n",
+        "child_process.exec(args.join(' '), fn);\n",
+    ):
+        findings = _scan_js(content)
+        assert any(f.title == "child_process exec (member call)" for f in findings), content
+
+
+def test_regexp_exec_is_not_flagged_as_command():
+    # regexp.exec()/pattern.exec() take one argument — the string to test —
+    # so the callback/options signal must never fire on them.
+    for content in (
+        "const m = pattern.exec(input);\n",
+        "while ((m = re.exec(str)) !== null) {}\n",
+        r"const parts = /(\d+)/.exec(value);" + "\n",
+    ):
+        findings = _scan_js(content)
+        assert not any("member call" in f.title for f in findings), content
+
+
+def test_constant_command_exec_is_not_member_flagged():
+    # A fixed command string with a callback isn't injectable.
+    findings = _scan_js('cp.exec("ls -la", function (err) {});\n')
+    assert not any(f.title == "child_process exec (member call)" for f in findings)
+
+
+# --- minified/bundled file skip (D4) ---
+
+
+def test_minified_named_file_is_skipped_for_injection():
+    # Same content flagged in a source file must be skipped in a .min.js.
+    content = "el.innerHTML = data;\ndocument.write(x);\n"
+    assert _scan_js(content), "sanity: flagged in normal source"
+    assert InjectionScanner().scan_file(Path("vendor/jquery.min.js"), content) == []
+    assert InjectionScanner().scan_file(Path("app.bundle.js"), content) == []
+
+
+def test_long_line_file_is_treated_as_minified():
+    giant = "var x=1;" + "a" * 3000 + ";el.innerHTML=data;\n"
+    assert InjectionScanner().scan_file(Path("dist/app.js"), giant) == []
+
+
+def test_python_with_long_line_is_not_minified_skipped():
+    # A .py file is source regardless of line length — never bundle-skipped.
+    content = 'x = "' + "y" * 2500 + '"\nos.system(cmd)\n'
+    findings = InjectionScanner().scan_file(Path("app.py"), content)
+    assert any(f.title == "os.system() call" for f in findings)
