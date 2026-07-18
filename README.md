@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@v0.1.9
+      - uses: Varpost/Scout@v0.1.10
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -110,7 +110,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.9        # use the latest tag
+    rev: v0.1.10        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -229,14 +229,14 @@ Deep analysis — **injection** (SQL/command/XSS) and **security headers** — t
 
 Scout's injection scanner is measured against 104 real CVEs from the [OpenSSF CVE Benchmark](https://github.com/ossf-cve-benchmark/ossf-cve-benchmark) — real vulnerable commits in real JS/TS projects, no synthetic test cases. Full methodology, caveats, and reproduction steps live in [benchmarks/](benchmarks/); results are versioned per release, and this README only ever cites numbers present in a committed results file.
 
-Honest reading of the [v0.1.9 results](benchmarks/results/0.1.9/summary-native.md): command-injection detection is the strongest category (22% precision / 19% recall against CVEs that full taint-analysis engines also find hard); the XSS heuristics are deliberately narrow and noisy on legacy codebases; JS SQL injection through ORM APIs is out of pattern reach today. Adding `--engine semgrep` lifts overall recall to [20.3%](benchmarks/results/0.1.9/summary-native-semgrep.md) (command injection to 29.2%) on the same corpus. The false-positive counts are an upper bound by benchmark convention — unlabeled real issues count against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+Honest reading of the [v0.1.10 results](benchmarks/results/0.1.10/summary-native.md): overall recall is **20.3%** (up from 16.5% in v0.1.9, driven by the JS taint pass — NoSQL/ORM injection detection went from nothing to 25% recall, code injection doubled to 12.9%, and XSS recall rose to 22.7% while its false positives *fell*). Command injection sits at 20.8% recall / 23.3% precision against CVEs that full taint-analysis engines also find hard. Adding `--engine semgrep` lifts overall recall to [24.1%](benchmarks/results/0.1.10/summary-native-semgrep.md) (command injection to 31.2%). The false-positive counts are an upper bound by benchmark convention — unlabeled real issues count against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
 
 ## Example Output
 
 ```
 $ scout scan ./my-app
 
-Scout v0.1.9 scanning: ./my-app
+Scout v0.1.10 scanning: ./my-app
 
   Scanning 47 files...
 
