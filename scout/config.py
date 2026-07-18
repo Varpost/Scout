@@ -18,7 +18,7 @@ else:
 # Shared with the CLI's --fail-on validation.
 FAIL_ON_CHOICES = ("critical", "high", "medium", "low", "never")
 
-_KNOWN_KEYS = {"exclude", "scanners", "fail_on"}
+_KNOWN_KEYS = {"exclude", "scanners", "fail_on", "engines"}
 
 
 @dataclass
@@ -33,6 +33,8 @@ class ScoutConfig:
         ollama_model: Ollama model name.
         exclude: Paths/globs (relative to the scan root) to skip.
         scanners: Scanner names to run; None means all registered scanners.
+        engines: External engines (e.g. "semgrep") to run and merge; empty
+            means none — the default zero-dependency scan.
         fail_on: Severity threshold for exit code 1 (or "never").
         ai_model: Override the confirmation-pass model for the selected
             provider; None uses that provider's built-in default.
@@ -45,6 +47,7 @@ class ScoutConfig:
     ollama_model: str
     exclude: tuple[str, ...] = ()
     scanners: tuple[str, ...] | None = None
+    engines: tuple[str, ...] = ()
     fail_on: str = "high"
     ai_model: str | None = None
 
@@ -106,6 +109,7 @@ def load_config(
     project_path: Path | None = None,
     cli_exclude: list[str] | None = None,
     cli_fail_on: str | None = None,
+    cli_engines: list[str] | None = None,
 ) -> ScoutConfig:
     """Load configuration from CLI flags, ``[tool.scout]``, and environment.
 
@@ -119,6 +123,8 @@ def load_config(
         project_path: Scan target; its pyproject.toml supplies [tool.scout].
         cli_exclude: --exclude values; None when the flag wasn't passed.
         cli_fail_on: --fail-on value; None when the flag wasn't passed.
+        cli_engines: --engine values; None when the flag wasn't passed.
+            Like --exclude, replaces the [tool.scout] engines list entirely.
 
     Returns:
         ScoutConfig with all resolved values.
@@ -149,6 +155,12 @@ def load_config(
     if cli_exclude is not None:
         exclude = tuple(cli_exclude)
 
+    engines: tuple[str, ...] = ()
+    if "engines" in table:
+        engines = _string_tuple(table["engines"], "engines")
+    if cli_engines is not None:
+        engines = tuple(cli_engines)
+
     scanners: tuple[str, ...] | None = None
     if "scanners" in table:
         scanners = _string_tuple(table["scanners"], "scanners")
@@ -172,6 +184,7 @@ def load_config(
         ollama_model=os.getenv("OLLAMA_MODEL", ollama_model),
         exclude=exclude,
         scanners=scanners,
+        engines=engines,
         fail_on=fail_on,
         ai_model=os.getenv("SCOUT_AI_MODEL"),
     )

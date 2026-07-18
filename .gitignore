@@ -40,6 +40,11 @@ ai_security_team_architecture.svg
 .github/agents/
 .github/copilot-instructions.md
 
+# Local agent/skill state (Higgsfield etc.) — machine-local, never commit
+.agents/
+.claude/
+skills-lock.json
+
 # Local-only docs (never commit)
 SCOUT_SPEC.md
 CLAUDE.md
@@ -48,6 +53,7 @@ SCOUT_GROWTH_PLAN.md
 TRIDENT_VS_SCOUT_BRIEF.md
 SCOUT_AI_INTEGRATION_PLAN.md
 SCOUT_CONNECT_LINKS_PLAN.md
+SCOUT_ADVANCEMENT_PLAN.md
 
 # Video masters/exports — served as release assets, never committed
 *.mp4
