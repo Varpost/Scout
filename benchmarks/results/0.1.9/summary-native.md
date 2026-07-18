@@ -1,4 +1,4 @@
-# Scout 0.1.8 — OpenSSF CVE Benchmark results
+# Scout 0.1.9 — OpenSSF CVE Benchmark results
 
 - Mode: **native scanners only**
 - CVEs scanned: **104** (fetch failures: 2)
