@@ -8,9 +8,9 @@
 | -------- | -- | -- | -- | --------- | ------ |
 | cmdi | 9 | 32 | 39 | 22.0% | 18.8% |
 | codei | 2 | 53 | 29 | 3.6% | 6.5% |
-| sqli | 0 | 6 | 4 | 0.0% | 0.0% |
-| xss | 9 | 2229 | 66 | 0.4% | 12.0% |
-| **all** | 20 | 2320 | 138 | 0.9% | 12.7% |
+| sqli | 0 | 9 | 4 | 0.0% | 0.0% |
+| xss | 15 | 1839 | 60 | 0.8% | 20.0% |
+| **all** | 26 | 1933 | 132 | 1.3% | 16.5% |
 
 Read METHODOLOGY.md before quoting any number — especially the FP caveat
 (unlabeled real issues in corpus repos count as FPs by convention) and the

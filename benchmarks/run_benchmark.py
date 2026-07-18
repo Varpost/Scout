@@ -42,6 +42,7 @@ CATEGORY_TITLES = {
         "SQL f-string query",
         "Raw SQL with string format",
         "SQL template literal",
+        "SQL raw() with dynamic input",
     },
     "cmdi": {
         "shell=True with dynamic command",
@@ -61,7 +62,11 @@ CATEGORY_TITLES = {
     },
     "xss": {
         "innerHTML assignment",
+        "outerHTML assignment",
         "document.write()",
+        "insertAdjacentHTML with dynamic content",
+        "dangerouslySetInnerHTML with dynamic content",
+        "jQuery .html() with dynamic content",
         "Unescaped template output",
     },
 }
