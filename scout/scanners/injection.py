@@ -170,8 +170,8 @@ _SQL_SINK_NAMES = frozenset({"execute", "executemany", "query", "raw"})
 # anything else (unknown APIs) is not treated as evidence.
 _SUBPROCESS_FUNCS = frozenset({"run", "call", "Popen", "check_call", "check_output"})
 
-# (line, title, description, severity, fix_phase)
-_AstHit = tuple[int, str, str, str, int]
+# (line, title, description, severity, fix_phase, reachable)
+_AstHit = tuple[int, str, str, str, int, bool | None]
 
 
 def _is_constant(node: ast.expr) -> bool:
@@ -210,14 +210,125 @@ def _contains_str_literal(node: ast.expr) -> bool:
     return False
 
 
+# --- Reachability: best-effort intra-file source→sink tracking ---
+
+
+def _is_source_node(node: ast.AST) -> bool:
+    """True for expressions that read untrusted input.
+
+    Sources: any attribute/subscript on a ``request`` object (Flask/Django),
+    ``sys.argv``, ``os.environ``/``os.getenv``, and ``input()``.
+    """
+    if isinstance(node, ast.Attribute):
+        root: ast.expr = node
+        while isinstance(root, (ast.Attribute, ast.Subscript)):
+            root = root.value
+        if isinstance(root, ast.Name) and root.id == "request":
+            return True
+        if node.attr == "argv" and isinstance(node.value, ast.Name) and node.value.id == "sys":
+            return True
+        if node.attr == "environ" and isinstance(node.value, ast.Name) and node.value.id == "os":
+            return True
+        return False
+    if isinstance(node, ast.Call):
+        func = node.func
+        if isinstance(func, ast.Name) and func.id == "input":
+            return True
+        if (
+            isinstance(func, ast.Attribute)
+            and func.attr == "getenv"
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "os"
+        ):
+            return True
+    return False
+
+
+def _expr_has_source(expr: ast.expr) -> bool:
+    """True when an untrusted-input source appears anywhere in the expression."""
+    return any(_is_source_node(node) for node in ast.walk(expr))
+
+
+def _build_taint_env(tree: ast.Module) -> dict[str, bool | None]:
+    """Map assigned names to their taint state across the whole file.
+
+    True = ever assigned from an untrusted source, False = only ever assigned
+    constants, None = anything else (calls, params, conflicting assignments).
+    Single flat namespace — deliberately no scope analysis (best-effort,
+    intra-file only).
+    """
+    env: dict[str, bool | None] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            targets: list[ast.expr] = node.targets
+            value: ast.expr | None = node.value
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+            targets = [node.target]
+            value = node.value
+        else:
+            continue
+        if value is None:  # bare annotation: `x: int`
+            continue
+        state: bool | None
+        if _expr_has_source(value):
+            state = True
+        elif _is_constant(value):
+            state = False
+        else:
+            state = None
+        for target in targets:
+            if not isinstance(target, ast.Name):
+                continue
+            if target.id not in env:
+                env[target.id] = state
+            elif env[target.id] is True or state is True:
+                env[target.id] = True  # once tainted, always tainted
+            elif env[target.id] != state:
+                env[target.id] = None  # conflicting evidence — undetermined
+    return env
+
+
+def _reachability(exprs: list[ast.expr], env: dict[str, bool | None]) -> bool | None:
+    """Classify sink arguments: fed by untrusted input, constants, or unknown."""
+    verdicts: list[bool | None] = []
+    for expr in exprs:
+        if _expr_has_source(expr):
+            verdicts.append(True)
+            continue
+        names = [node.id for node in ast.walk(expr) if isinstance(node, ast.Name)]
+        if any(env.get(name) is True for name in names):
+            verdicts.append(True)
+        elif any(isinstance(node, ast.Call) for node in ast.walk(expr)):
+            verdicts.append(None)  # a call can smuggle in external data
+        elif all(env.get(name) is False for name in names):
+            verdicts.append(False)  # constants only (vacuously true for literals)
+        else:
+            verdicts.append(None)
+    if True in verdicts:
+        return True
+    if None in verdicts or not verdicts:
+        return None
+    return False
+
+
 class _PySinkVisitor(ast.NodeVisitor):
     """Collects injection sinks from a parsed Python module."""
 
-    def __init__(self) -> None:
+    def __init__(self, env: dict[str, bool | None] | None = None) -> None:
+        self.env = env or {}
         self.hits: list[_AstHit] = []
 
-    def _add(self, node: ast.AST, title: str, description: str, severity: str, fix_phase: int) -> None:
-        self.hits.append((getattr(node, "lineno", 1), title, description, severity, fix_phase))
+    def _add(
+        self,
+        node: ast.AST,
+        title: str,
+        description: str,
+        severity: str,
+        fix_phase: int,
+        taint_exprs: list[ast.expr] | None = None,
+    ) -> None:
+        reachable = _reachability(taint_exprs, self.env) if taint_exprs is not None else None
+        self.hits.append((getattr(node, "lineno", 1), title, description, severity, fix_phase, reachable))
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 — ast.NodeVisitor API
         """Check one call expression against every Python sink."""
@@ -234,9 +345,11 @@ class _PySinkVisitor(ast.NodeVisitor):
         if node.args and not node.keywords and all(_is_constant(arg) for arg in node.args):
             return  # constant expression — nothing injectable
         if func.id == "eval":
-            self._add(node, "eval() usage", _DESCRIPTIONS["eval() usage"], "CRITICAL", 4)  # scout: ignore
+            self._add(
+                node, "eval() usage", _DESCRIPTIONS["eval() usage"], "CRITICAL", 4, list(node.args)
+            )  # scout: ignore
         else:
-            self._add(node, "exec() usage", _PY_EXEC_DESCRIPTION, "CRITICAL", 4)  # scout: ignore
+            self._add(node, "exec() usage", _PY_EXEC_DESCRIPTION, "CRITICAL", 4, list(node.args))  # scout: ignore
 
     def _check_os_system(self, node: ast.Call) -> None:
         func = node.func
@@ -249,10 +362,12 @@ class _PySinkVisitor(ast.NodeVisitor):
             return
         if node.args and all(_is_constant(arg) for arg in node.args):
             self._add(
-                node, "os.system() with constant command", _PY_OS_SYSTEM_CONSTANT_DESCRIPTION, "LOW", 1
+                node, "os.system() with constant command", _PY_OS_SYSTEM_CONSTANT_DESCRIPTION, "LOW", 1, list(node.args)
             )  # scout: ignore
         else:
-            self._add(node, "os.system() call", _DESCRIPTIONS["os.system() call"], "CRITICAL", 4)  # scout: ignore
+            self._add(
+                node, "os.system() call", _DESCRIPTIONS["os.system() call"], "CRITICAL", 4, list(node.args)
+            )  # scout: ignore
 
     def _check_shell_true(self, node: ast.Call) -> None:
         func = node.func
@@ -273,6 +388,7 @@ class _PySinkVisitor(ast.NodeVisitor):
                 _DESCRIPTIONS["shell=True with constant command"],
                 "LOW",
                 1,
+                [command] if command is not None else None,
             )
         else:
             self._add(
@@ -281,6 +397,7 @@ class _PySinkVisitor(ast.NodeVisitor):
                 _DESCRIPTIONS["shell=True with dynamic command"],
                 "CRITICAL",
                 4,
+                [command],
             )
 
     def _check_sql(self, node: ast.Call) -> None:
@@ -297,9 +414,11 @@ class _PySinkVisitor(ast.NodeVisitor):
         if not _builds_string(query):
             return  # constant query (parameterized) or a prebuilt variable
         if isinstance(query, ast.JoinedStr):
-            self._add(node, "SQL f-string query", _DESCRIPTIONS["SQL f-string query"], "CRITICAL", 4)
+            self._add(node, "SQL f-string query", _DESCRIPTIONS["SQL f-string query"], "CRITICAL", 4, [query])
         else:
-            self._add(node, "SQL string concatenation", _DESCRIPTIONS["SQL string concatenation"], "CRITICAL", 4)
+            self._add(
+                node, "SQL string concatenation", _DESCRIPTIONS["SQL string concatenation"], "CRITICAL", 4, [query]
+            )
 
 
 @register_scanner
@@ -341,6 +460,7 @@ class InjectionScanner(BaseScanner):
         description: str,
         severity: str,
         fix_phase: int,
+        reachable: bool | None = None,
     ) -> Finding:
         """Build a finding with the shared 3-line snippet around the flagged line."""
         start = max(0, line_num - 2)
@@ -355,15 +475,16 @@ class InjectionScanner(BaseScanner):
             snippet="\n".join(lines[start:end]),
             fix_phase=fix_phase,
             fix_summary="Use parameterized queries / safe APIs instead of string interpolation.",
+            reachable=reachable,
         )
 
     def _scan_python_ast(self, tree: ast.Module, file_path: Path, lines: list[str]) -> list[Finding]:
         """Run the AST sink checks over a parsed Python module."""
-        visitor = _PySinkVisitor()
+        visitor = _PySinkVisitor(env=_build_taint_env(tree))
         visitor.visit(tree)
         return [
-            self._finding(file_path, lines, line_num, title, description, severity, fix_phase)
-            for line_num, title, description, severity, fix_phase in visitor.hits
+            self._finding(file_path, lines, line_num, title, description, severity, fix_phase, reachable)
+            for line_num, title, description, severity, fix_phase, reachable in visitor.hits
         ]
 
     def _scan_regex(
