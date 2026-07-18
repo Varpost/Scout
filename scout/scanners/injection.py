@@ -35,7 +35,14 @@ SQL_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ),
     (
         "Raw SQL with string format",
-        re.compile(r"""['"].*(?:SELECT|INSERT|UPDATE|DELETE).*['"].*%\s*\(""", re.IGNORECASE),
+        # The gaps are bounded to [^'"\n]* on purpose: unbounded .* here was
+        # catastrophic (minutes of backtracking) on single-line minified JS
+        # full of quotes and the word "delete" — found by the C1 benchmark
+        # on jquery.min.js. Quote-free gaps keep the match linear.
+        re.compile(
+            r"""['"][^'"\n]*(?:SELECT|INSERT|UPDATE|DELETE)[^'"\n]*['"]\s*%\s*\(""",
+            re.IGNORECASE,
+        ),
         "SQL query using %-formatting with variables. This is NOT parameterization — "
         "it's string interpolation that allows SQL injection.",
     ),

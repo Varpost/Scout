@@ -188,6 +188,26 @@ def test_unparseable_python_falls_back_to_regex():
     assert any(f.title == "os.system() call" for f in findings)
 
 
+def test_raw_sql_percent_format_still_detected_in_js():
+    scanner = InjectionScanner()
+    content = 'db.run("SELECT * FROM users WHERE id = %s" % (user_id,));\n'
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert any(f.title == "Raw SQL with string format" for f in findings)
+
+
+def test_minified_js_scans_in_linear_time():
+    # Regression: the Raw-SQL pattern's unbounded .* gaps backtracked for
+    # MINUTES on single-line minified JS (found via jquery.min.js in the C1
+    # benchmark corpus). This synthetic worst case must stay fast.
+    import time
+
+    scanner = InjectionScanner()
+    chunk = 'a("x",b).delete.c;"q";' * 10_000  # one ~220KB line, quotes + "delete"
+    t0 = time.time()
+    scanner.scan_file(Path("vendor.min.js"), chunk + "\n")
+    assert time.time() - t0 < 5, "pathological minified line must not trigger regex backtracking"
+
+
 # --- Reachability signal (intra-file source→sink) ---
 
 
