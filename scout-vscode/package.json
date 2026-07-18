@@ -1,0 +1,71 @@
+{
+  "name": "scout-security",
+  "displayName": "Scout Security",
+  "description": "Inline security diagnostics on save — secrets, SQL/NoSQL injection, command injection, XSS, vulnerable deps. Powered by the scout-security CLI: free, local, deterministic.",
+  "version": "0.1.0",
+  "publisher": "varpost",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Varpost/Scout"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "security",
+    "sast",
+    "secrets",
+    "injection",
+    "vulnerability"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "scout.scanFile",
+        "title": "Scout: Scan Current File"
+      },
+      {
+        "command": "scout.scanWorkspace",
+        "title": "Scout: Scan Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "Scout Security",
+      "properties": {
+        "scout.executable": {
+          "type": "string",
+          "default": "scoutsec",
+          "description": "Scout CLI executable (scoutsec is the collision-proof name installed by pip install scout-security)."
+        },
+        "scout.scanOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Scout on the file every time it is saved."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "npm run compile && node --test test/findings.test.cjs",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
