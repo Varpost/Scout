@@ -70,6 +70,8 @@ a:hover { color: var(--purple); }
 }
 .nav-inner { height: 64px; display: flex; align-items: center; gap: 26px; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+footer .brand-glyph { width: 22px; height: 22px; border-radius: 6px; font-size: 11px; }
+footer .brand-name { font-size: 15px; }
 .brand-glyph {
   width: 26px; height: 26px; border-radius: 7px; background: var(--grad);
   display: flex; align-items: center; justify-content: center;
@@ -175,6 +177,9 @@ a:hover { color: var(--purple); }
   background: var(--surface); border-bottom: 1px solid var(--border);
 }
 .term-dot { width: 11px; height: 11px; border-radius: 50%; opacity: .8; }
+.term-dot:nth-child(1) { background: #f85149; }
+.term-dot:nth-child(2) { background: #d29922; }
+.term-dot:nth-child(3) { background: #3fb950; }
 .term-title { flex: 1; text-align: center; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
 .term-head .balance { width: 49px; }
 .term-body {
@@ -334,7 +339,7 @@ code.inline {
   transition: border-color .18s ease;
 }
 .code-block:hover { border-color: var(--blue); }
-.code-block pre { margin: 0; font-family: inherit; white-space: pre; }
+.code-block code { display: block; margin: 0; text-align: left; font-family: inherit; white-space: pre; }
 .code-block .flag { position: absolute; top: 10px; right: 12px; font-size: 10.5px; letter-spacing: .08em; }
 .code-block .flag-idle { color: var(--muted); }
 .code-block .flag-done { display: none; color: var(--green); }
@@ -475,9 +480,9 @@ footer { border-top: 1px solid var(--border); }
       <div class="term-glow" aria-hidden="true"></div>
       <div class="term" aria-hidden="true">
         <div class="term-head">
-          <span class="term-dot" style="background:#f85149"></span>
-          <span class="term-dot" style="background:#d29922"></span>
-          <span class="term-dot" style="background:#3fb950"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
           <span class="term-title">~/my-app</span>
           <span class="balance"></span>
         </div>
@@ -629,7 +634,7 @@ footer { border-top: 1px solid var(--border); }
 </section>
 
 <!-- ================= 06 Find → Fix → Verify ================= -->
-<section class="band" id="how-it-works" style="scroll-margin-top:64px">
+<section class="band" id="how-it-works">
   <div class="wrap section-pad">
     <div class="rev">
       <div class="kicker"><span class="num">06</span><span class="label">HOW IT WORKS</span></div>
@@ -671,8 +676,8 @@ footer { border-top: 1px solid var(--border); }
       <div class="rev">
         <div class="connect-card">
           <div class="card-head"><h3>Claude Code</h3><span class="tag">PLUGIN</span></div>
-          <button type="button" class="code-block" aria-label="Copy Claude Code plugin commands"><pre>/plugin marketplace add Varpost/Scout
-/plugin install scout@scout</pre><span class="flag"><span class="flag-idle">COPY</span><span class="flag-done">COPIED ✓</span></span></button>
+          <button type="button" class="code-block" aria-label="Copy Claude Code plugin commands"><code>/plugin marketplace add Varpost/Scout
+/plugin install scout@scout</code><span class="flag"><span class="flag-idle">COPY</span><span class="flag-done">COPIED ✓</span></span></button>
           <p class="cap">Bundles the MCP server. Registers the <code>scan_path</code> tool &amp; <code>/scout-scan</code>. Needs uv on your PATH.</p>
           <hr class="hr">
           <span class="oneclick-label">ONE CLICK · CONFIG PRE-FILLED</span>
@@ -686,14 +691,14 @@ footer { border-top: 1px solid var(--border); }
       <div class="rev">
         <div class="connect-card">
           <div class="card-head"><h3>Every other MCP host</h3><span class="tag">SAME SERVER OBJECT</span></div>
-          <button type="button" class="code-block" aria-label="Copy the mcpServers JSON configuration"><pre>{
+          <button type="button" class="code-block" aria-label="Copy the mcpServers JSON configuration"><code>{
   "mcpServers": {
     "scout": {
       "command": "uvx",
       "args": ["--from", "scout-security[mcp]", "scout-mcp"]
     }
   }
-}</pre><span class="flag"><span class="flag-idle">COPY</span><span class="flag-done">COPIED ✓</span></span></button>
+}</code><span class="flag"><span class="flag-idle">COPY</span><span class="flag-done">COPIED ✓</span></span></button>
           <p class="cap">No uv? <code>pip install "scout-security[mcp]"</code> and use <code>"command": "scout-mcp"</code> with no args.</p>
           <hr class="hr push">
           <p class="hosts-line">Cursor · Claude Desktop · Cline · Windsurf · VS Code (.vscode/mcp.json, under a "servers" key)</p>
@@ -777,8 +782,8 @@ footer { border-top: 1px solid var(--border); }
 <footer>
   <div class="wrap footer-inner">
     <a class="brand" href="#top" aria-label="Back to top">
-      <span class="brand-glyph" aria-hidden="true" style="width:22px;height:22px;border-radius:6px;font-size:11px">❯</span>
-      <span class="brand-name" style="font-size:15px">Scout</span>
+      <span class="brand-glyph" aria-hidden="true">❯</span>
+      <span class="brand-name">Scout</span>
     </a>
     <span class="footer-tag">Catch vulnerabilities before hackers do.</span>
     <span class="footer-spacer"></span>
@@ -806,8 +811,8 @@ footer { border-top: 1px solid var(--border); }
   });
   document.querySelectorAll('.code-block').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var pre = btn.querySelector('pre');
-      try { navigator.clipboard.writeText(pre ? pre.textContent : ''); } catch (e) {}
+      var code = btn.querySelector('code');
+      try { navigator.clipboard.writeText(code ? code.textContent : ''); } catch (e) {}
       btn.classList.add('copied');
       setTimeout(function () { btn.classList.remove('copied'); }, 1600);
     });
