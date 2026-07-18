@@ -34,9 +34,12 @@ def _ensure_git_repo(root: Path) -> None:
         ValueError: git is not on PATH, or ``root`` is not in a git repo.
     """
     try:
+        # stdin=DEVNULL: scan_diff calls this inside the stdio MCP server,
+        # where a child inheriting the protocol stdin pipe deadlocks (Windows).
         result = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--git-dir"],
             capture_output=True,
+            stdin=subprocess.DEVNULL,
             text=True,
             check=False,
         )
