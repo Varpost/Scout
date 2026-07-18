@@ -63,7 +63,7 @@ CATEGORY_TITLES = {
     "xss": {
         "innerHTML assignment",
         "outerHTML assignment",
-        "document.write()",
+        "document.write()",  # scout: ignore[injection]
         "insertAdjacentHTML with dynamic content",
         "dangerouslySetInnerHTML with dynamic content",
         "jQuery .html() with dynamic content",
