@@ -174,7 +174,14 @@ Scout can orchestrate industrial OSS engines and merge their findings into its r
 ```bash
 pip install semgrep                # or brew install semgrep
 scout scan . --engine semgrep      # native scanners + semgrep, merged & deduped
+
+# CodeQL — GitHub's semantic analysis engine (CLI from
+# https://github.com/github/codeql-cli-binaries, on PATH as `codeql`)
+scout scan . --engine codeql       # builds a CodeQL DB per language (python/js),
+                                   # runs the official security queries, merges the SARIF
 ```
+
+`--engine codeql` runs the same query suite GitHub code scanning uses, so a Scout report can carry full semantic-analysis findings — expect it to take minutes, not seconds (database extraction is CodeQL's design, not Scout overhead).
 
 Engines are strictly opt-in: the default scan stays zero-dependency and fully deterministic. A requested engine that isn't installed is skipped with a one-line note — never a crash. Engine findings that land on a line a native scanner already flagged are dropped in favor of Scout's own fix guidance.
 
