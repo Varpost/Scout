@@ -14,7 +14,12 @@ the scan mode:
 | Mode | cmdi recall | xss recall | codei recall | sqli recall | Overall recall | Overall precision |
 | ---- | ----------- | ---------- | ------------ | ----------- | -------------- | ----------------- |
 | Scout native (zero-dep, deterministic) | 18.8% | 20.0% | 6.5% | 0.0% | 16.5% | 1.3% |
-| Scout `--engine semgrep` (p/default) | TBD | TBD | TBD | TBD | TBD | TBD |
+| Scout `--engine semgrep` (p/default) | **29.2%** | 21.3% | 6.5% | 0.0% | **20.3%** | 1.6% |
+
+Two things worth noticing in that second row: the engine's biggest lift is
+command injection (+10.4 points — semgrep's `child_process` rules are strong),
+and even an industrial rule engine adds only ~4 points of overall recall on
+real CVEs — evidence for the paper's conclusion below, not against semgrep.
 
 ## Published results for other tools on this corpus (different grading)
 
@@ -58,7 +63,9 @@ which is exactly why they make honest benchmarks.
   Scout deliberately has no whole-program analysis.
 - The `--engine semgrep` mode exists precisely so users who want
   engine-grade depth get it through the same report, while the native scan
-  stays free, instant, and deterministic.
+  stays free, instant, and deterministic. `--engine codeql` (PR #79) goes
+  further and orchestrates CodeQL itself — the top row of the table above,
+  merged into a Scout report.
 - Precision against CVE-labeled corpora is structurally low for every
   pattern tool (only the one labeled weakness per repo counts as "true") —
   see METHODOLOGY.md before comparing precision numbers anywhere.
