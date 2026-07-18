@@ -57,3 +57,6 @@ SCOUT_ADVANCEMENT_PLAN.md
 
 # Video masters/exports — served as release assets, never committed
 *.mp4
+
+# Benchmark corpus — downloaded repos, cached locally, never committed
+benchmarks/corpus/

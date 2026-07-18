@@ -108,7 +108,10 @@ class SemgrepEngine(BaseEngine):
         exe = shutil.which(self.binary)
         if exe is None:  # pragma: no cover — callers gate on available()
             return []
-        cmd = [exe, "scan", "--json", "--quiet", "--disable-version-check", str(path)]
+        # Modern semgrep loads ZERO rules without an explicit config — a bare
+        # `semgrep scan` silently returns nothing. p/default is the registry's
+        # community ruleset: deterministic, no login, fetched once and cached.
+        cmd = [exe, "scan", "--config", "p/default", "--json", "--quiet", "--disable-version-check", str(path)]
         try:
             proc = subprocess.run(  # noqa: S603 — fixed argv, absolute exe, no shell
                 cmd,
@@ -117,6 +120,9 @@ class SemgrepEngine(BaseEngine):
                 errors="replace",
                 timeout=SEMGREP_TIMEOUT_SECONDS,
                 check=False,
+                # Engines are reachable from the MCP server; an inherited
+                # protocol stdin deadlocks child processes on Windows.
+                stdin=subprocess.DEVNULL,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             _warn(f"failed to run semgrep: {exc}")

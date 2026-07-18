@@ -120,6 +120,9 @@ def test_run_invokes_semgrep_and_parses(monkeypatch):
     assert len(findings) == 2
     assert seen["cmd"][0] == "/usr/bin/semgrep"
     assert "--json" in seen["cmd"]
+    # Without an explicit config modern semgrep loads zero rules — the
+    # invocation must always name one.
+    assert "--config" in seen["cmd"]
 
 
 def test_run_fails_open_on_subprocess_error(monkeypatch, capsys):

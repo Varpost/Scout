@@ -1,0 +1,1544 @@
+{
+  "source": "OpenSSF CVE Benchmark (https://github.com/ossf-cve-benchmark/ossf-cve-benchmark), Apache-2.0",
+  "selection": "All PUBLISHED CVEs whose CWEs intersect Scout's claim area: CWE-077/078 (cmdi), CWE-089 (sqli), CWE-079 (xss), CWE-094/095 (codei).",
+  "entries": [
+    {
+      "cve": "CVE-2016-1000229",
+      "repository": "https://github.com/linxiaowu66/swagger-ui.git",
+      "commit": "14fad2b4c76efe249db515c98432eb609aa77691",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/main/javascript/helpers/handlebars.js",
+          "line": 68
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2016-10735",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "ba6a6f13691000ffaf22ef8e731513737659447f",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/src/util.js",
+          "line": 120
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-0931",
+      "repository": "https://github.com/guardian/html-janitor.git",
+      "commit": "8c99e653a36a85edd740e756d7371ee47a9aee45",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/html-janitor.js",
+          "line": 43
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-1000006",
+      "repository": "https://github.com/plotly/plotly.js.git",
+      "commit": "16e0fc29690c82282db91f99e651190afa0a9f87",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/lib/svg_text_utils.js",
+          "line": 270
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-1000219",
+      "repository": "https://github.com/KyleRoss/windows-cpu.git",
+      "commit": "da656c1a9d5edbf4e8bf0640f349aeb714a4f1a0",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 82
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-1001004",
+      "repository": "https://github.com/josdejong/typed-function.git",
+      "commit": "9a8cac3cb8ae89fd0a9b3ae2dfde27cd1aa5a60a",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "typed-function.js",
+          "line": 1118
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16018",
+      "repository": "https://github.com/restify/node-restify.git",
+      "commit": "893895137b6a54a21ebf88cabe3f275636ef28d7",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/server.js",
+          "line": 202
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16034",
+      "repository": "https://github.com/soyuka/pidusage.git",
+      "commit": "e3660d8a8e5e61afad9b02af67356a1e239d6bde",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/stats.js",
+          "line": 103
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16042",
+      "repository": "https://github.com/tj/node-growl.git",
+      "commit": "dc8aae046df328edd32dd69f3cd2d6b114d7018e",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/growl.js",
+          "line": 289
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16043",
+      "repository": "https://github.com/erming/shout.git",
+      "commit": "890c751bb624cde53dc392b2c851cdcd056033c6",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "client/js/shout.js",
+          "line": 318
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16087",
+      "repository": "https://github.com/vvakame/fs-git.git",
+      "commit": "50b33e3faec0b08183a699efb9b154c0d1495bee",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/index.ts",
+          "line": 38
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16100",
+      "repository": "https://github.com/skoranga/node-dns-sync.git",
+      "commit": "b748fe77a87749d95876028eda8e759109be4c73",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/dns-sync.js",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-18352",
+      "repository": "https://github.com/GoogleChrome/rendertron.git",
+      "commit": "16ade3208c80c3de8f8e36a05ad8242af1eeb7f4",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/main.js",
+          "line": 106
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-18353",
+      "repository": "https://github.com/GoogleChrome/rendertron.git",
+      "commit": "16ade3208c80c3de8f8e36a05ad8242af1eeb7f4",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/main.js",
+          "line": 130
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-18635",
+      "repository": "https://github.com/novnc/noVNC.git",
+      "commit": "41f476a86357f1404fcca078212c702599bbcc57",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "app/ui.js",
+          "line": 534
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-5954",
+      "repository": "https://github.com/commenthol/serialize-to-js.git",
+      "commit": "a1e8140ed1a07013f644b5b76025f4eaab7fb9d8",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/deserialize.js",
+          "line": 28
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-1000086",
+      "repository": "https://github.com/nprapps/pym.js.git",
+      "commit": "4b9016c30a930608e68dcd831176e1d089fab55b",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/pym.js",
+          "line": 569
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-11093",
+      "repository": "https://github.com/ckeditor/ckeditor5-link.git",
+      "commit": "992bd11d68e0e6d37b5cb4be36afabe7b4b3e9eb",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/ui/linkactionsview.js",
+          "line": 209
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-13797",
+      "repository": "https://github.com/scravy/node-macaddress.git",
+      "commit": "dd079620d11c91957ac897e88d539dfceec41d56",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/linux.js",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-14040",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "13bf8aeae3db71e28af69782328c22215795c169",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/collapse.js",
+          "line": 140
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-14041",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "149096016f70fd815540d62c0989fd99cdc809e0",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/src/scrollspy.js",
+          "line": 118
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-14042",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "13bf8aeae3db71e28af69782328c22215795c169",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/tooltip.js",
+          "line": 207
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-14380",
+      "repository": "https://github.com/Graylog2/graylog2-server.git",
+      "commit": "f4a6bf94bc084e58afc730881c1a746408e1f574",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "graylog2-web-interface/src/components/search/QueryInput.ts",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16460",
+      "repository": "https://github.com/UmbraEngineering/ps.git",
+      "commit": "facfbce24c0dc5505edbae759f4bb991f2724979",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/index.js",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16461",
+      "repository": "https://github.com/jas-/node-libnmap.git",
+      "commit": "49b72239b144ab7ffdf673b62e18bfd0760948f6",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/classes/tools.js",
+          "line": 114
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16462",
+      "repository": "https://github.com/vincentmorneau/apex-publish-static-files.git",
+      "commit": "8d28fe8a9a49e5ff3f61e239293b5646528e2915",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 54
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16480",
+      "repository": "https://github.com/tnantoka/public.git",
+      "commit": "6d152eb12b368df70c789aba84d27d01b854ee47",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "bin/public",
+          "line": 111
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16484",
+      "repository": "https://github.com/nunnly/m-server.git",
+      "commit": "e4bf390a3a9180ba2298f3d68bc16d9a69187703",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/index.js",
+          "line": 39
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16487",
+      "repository": "https://github.com/lodash/lodash.git",
+      "commit": "67389a8c78975d97505fa15aa79bec6397749807",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lodash.js",
+          "line": 2573
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16489",
+      "repository": "https://github.com/angus-c/just.git",
+      "commit": "f5549c99e72a6307ba9846e553db5a9aeef36d86",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "packages/object-extend/index.js",
+          "line": 50
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16490",
+      "repository": "https://github.com/aheckmann/mpath.git",
+      "commit": "77204d7e5b0adb2100e862069a3c20d073df8f06",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/index.js",
+          "line": 272
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16491",
+      "repository": "https://github.com/dreamerslab/node.extend.git",
+      "commit": "91713698d86df0bad356f13ae2e68af7f226bce9",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/extend.js",
+          "line": 61
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16492",
+      "repository": "https://github.com/justmoon/node-extend.git",
+      "commit": "a689700740b44846e76f8f1dc4bdf230a2cb5c0d",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 77
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-18282",
+      "repository": "https://github.com/zeit/next.js.git",
+      "commit": "ae56c7847f32173c0c6954a124fdaa749d44b5dc",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "server/document.js",
+          "line": 190
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-19048",
+      "repository": "https://github.com/mycolorway/simditor.git",
+      "commit": "65d78cbfcb576f8963ba26a991c33d746be5add7",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/simditor.js",
+          "line": 2652
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-20676",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "13bf8aeae3db71e28af69782328c22215795c169",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/tooltip.js",
+          "line": 54
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-20677",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "13bf8aeae3db71e28af69782328c22215795c169",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/affix.js",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3719",
+      "repository": "https://github.com/jonschlinkert/mixin-deep.git",
+      "commit": "7705bdf88ff0263242c07c824d20526203876668",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 30
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3721",
+      "repository": "https://github.com/lodash/lodash.git",
+      "commit": "5a3ff73997b773a28a5a160b95acfd133a8162e7",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lodash.js",
+          "line": 2580
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3722",
+      "repository": "https://github.com/jonschlinkert/merge-deep.git",
+      "commit": "7be7e50163dc4ef467ace5371186a77028a66cc9",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 45
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3726",
+      "repository": "https://github.com/omphalos/crud-file-server.git",
+      "commit": "0c45fc64f0c0aeb23fe515c95e29f6485803de65",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "crud-file-server.js",
+          "line": 143
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3728",
+      "repository": "https://github.com/hapijs/hoek.git",
+      "commit": "dfadda70b192adbcdf9a33ccc3caecfeb3dbe528",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/index.js",
+          "line": 129
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3746",
+      "repository": "https://github.com/fagbokforlaget/pdfinfojs.git",
+      "commit": "379c0e14db8298b465269653b9ac308d83eb6d4e",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/pdfinfo.js",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3747",
+      "repository": "https://github.com/tnantoka/public.git",
+      "commit": "6d152eb12b368df70c789aba84d27d01b854ee47",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "bin/public",
+          "line": 111
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3750",
+      "repository": "https://github.com/unclechu/node-deep-extend.git",
+      "commit": "9653940a75c2ef2b1a503b24cbadd707cccffa8c",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/deep-extend.js",
+          "line": 137
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3752",
+      "repository": "https://github.com/schnittstabil/merge-options.git",
+      "commit": "45a889b92251c342453af40c5f8e3fad063b7ef6",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3757",
+      "repository": "https://github.com/roest01/node-pdf-image.git",
+      "commit": "5803471830e0227df33a4b645aefd6521ff441e0",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 116
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3772",
+      "repository": "https://github.com/vvo/node-whereis.git",
+      "commit": "b8b642b1163baa37f15ed49b4064dcbdb6e1876c",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3783",
+      "repository": "https://github.com/JasonEtco/flintcms.git",
+      "commit": "49e4b6a49e8ba378313845162cd32ba06a2681d6",
+      "categories": [
+        "sqli"
+      ],
+      "weaknesses": [
+        {
+          "file": "server/apps/routes/auth.js",
+          "line": 80
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3786",
+      "repository": "https://github.com/eggjs/egg-scripts.git",
+      "commit": "08f8ea9429ee9727f5047af856d41c67de8ba23c",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/cmd/start.js",
+          "line": 235
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-6342",
+      "repository": "https://github.com/facebook/create-react-app.git",
+      "commit": "69c3d4b04c233ba9fb9d16691056bd09076177b1",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "packages/react-dev-utils/launchEditor.js",
+          "line": 336
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-8035",
+      "repository": "https://github.com/apache/uima-ducc.git",
+      "commit": "4c20c4fc00d5605ba40fac235df3ccf7dc38cb52",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "uima-ducc-web/src/main/webapp/root/js/ducc.js",
+          "line": 2950
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10061",
+      "repository": "https://github.com/peterbraden/node-opencv.git",
+      "commit": "cfc96ba0af8c13d017d9c72f2c61ec968f1c15fb",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "utils/find-opencv.js",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10090",
+      "repository": "https://github.com/apache/jspwiki.git",
+      "commit": "447b5a634dfb6adcc7ff28181cb174aaa1920577",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "jspwiki-war/src/main/scripts/moo-extend/Element.Extend.js",
+          "line": 530
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10744",
+      "repository": "https://github.com/lodash/lodash.git",
+      "commit": "1f8ea07746963a535385a5befc19fa687a627d2b",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lodash.js",
+          "line": 6608
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10745",
+      "repository": "https://github.com/jonschlinkert/assign-deep.git",
+      "commit": "edab79f1fe37bb8f78f4d7a4fe205c66885acee3",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 22
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10746",
+      "repository": "https://github.com/jonschlinkert/mixin-deep.git",
+      "commit": "9925af763440a50891358d00db0e6a5accc50ee6",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10747",
+      "repository": "https://github.com/jonschlinkert/set-value.git",
+      "commit": "7bd5011d82e583305a191a9a062abfe177ec29ad",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 59
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10750",
+      "repository": "https://github.com/alexindigo/deeply.git",
+      "commit": "d9f59eec37b75ce52038b3fcfb0fd86d4989c0c1",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/reduce_object.js",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10758",
+      "repository": "https://github.com/mongo-express/mongo-express.git",
+      "commit": "510a6e78e35a67251d5c53ca680ed3b5c6c259a7",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/bson.js",
+          "line": 60
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10771",
+      "repository": "https://github.com/ioBroker/ioBroker.web.git",
+      "commit": "652fc0ecf77740c13e6b83d1b0c1bd8b2b0b09f5",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "main.js",
+          "line": 1061
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10776",
+      "repository": "https://github.com/kellyselden/git-diff-apply.git",
+      "commit": "bfcc903a961d9f17bde1889cf49745a2dffefd73",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/run.js",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10777",
+      "repository": "https://github.com/awspilot/cli-lambda-deploy.git",
+      "commit": "3621b27347bdff96b5f444c0e31eba06e527005c",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/main.js",
+          "line": 187
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10778",
+      "repository": "https://github.com/guybedford/devcert.git",
+      "commit": "651bb8ebb97a029be13656c0476d48db85887451",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/install-authority.ts",
+          "line": 112
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-11358",
+      "repository": "https://github.com/jquery/jquery.git",
+      "commit": "669f720edc4f557dfef986db747c09ebfaa16ef5",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/core.js",
+          "line": 182
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-12313",
+      "repository": "https://github.com/dollarshaveclub/shave.git",
+      "commit": "0e0365d5f1b0d175b0c5ccf4abd040884ce0d8aa",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/shave.js",
+          "line": 62
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-13127",
+      "repository": "https://github.com/jgraph/mxgraph.git",
+      "commit": "33911ed7e055c17b74d0367f5f1f6c9ee4b4fd44",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "javascript/examples/grapheditor/www/js/Format.js",
+          "line": 1047
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-13506",
+      "repository": "https://github.com/Rich-Harris/devalue.git",
+      "commit": "751ed46deb404f5ed5d3ed49ee400903792530d5",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/index.ts",
+          "line": 190
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-14772",
+      "repository": "https://github.com/verdaccio/verdaccio.git",
+      "commit": "0b1b3556d9c043857f9bb789197f6d012876e484",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/webui/components/Readme/index.js",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-14862",
+      "repository": "https://github.com/knockout/knockout.git",
+      "commit": "4d63fceb26acc6de6cdae25bbe12bad57ba2c6f6",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/utils.js",
+          "line": 485
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-15478",
+      "repository": "https://github.com/jameswlane/status-board.git",
+      "commit": "115ccc389749a7a946d4e60563f1791ee2f39f7d",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/webapp/logic.ts",
+          "line": 44
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-15479",
+      "repository": "https://github.com/jameswlane/status-board.git",
+      "commit": "115ccc389749a7a946d4e60563f1791ee2f39f7d",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/webapp/routes/dashboard.ts",
+          "line": 94
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-15482",
+      "repository": "https://github.com/SLMNBJ/selectize-plugin-a11y.git",
+      "commit": "0824359781d57f1e629c866584e1c64e03ceae6f",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "selectize-plugin-a11y.js",
+          "line": 28
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-15532",
+      "repository": "https://github.com/gchq/CyberChef.git",
+      "commit": "38ff7ec89f595dbe5971c3577fa29a142b4b2416",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/core/operations/TextEncodingBruteForce.mjs",
+          "line": 82
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-15658",
+      "repository": "https://github.com/voxpelli/node-connect-pg-simple.git",
+      "commit": "5779bd26e7374028771141366b419a13778c84a6",
+      "categories": [
+        "sqli"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 170
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-15782",
+      "repository": "https://github.com/webtorrent/webtorrent.git",
+      "commit": "885a20066363c88563aa02931c3c43da5c1a1868",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/server.js",
+          "line": 156
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-18350",
+      "repository": "https://github.com/ant-design/ant-design-pro.git",
+      "commit": "0ad1fb3109f9864fc728bd7c6ebcb99e248d9f25",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/models/login.ts",
+          "line": 56
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-18818",
+      "repository": "https://github.com/strapi/strapi.git",
+      "commit": "10e39516b6abbcfd3beed22a14e66b0afab5adf6",
+      "categories": [
+        "sqli"
+      ],
+      "weaknesses": [
+        {
+          "file": "packages/strapi-admin/controllers/Auth.js",
+          "line": 253
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-20174",
+      "repository": "https://github.com/auth0/lock.git",
+      "commit": "ecd249397d611fcfc381e6e00e51c8ecdb37d1ad",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/ui/input/checkbox_input.jsx",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-5413",
+      "repository": "https://github.com/expressjs/morgan.git",
+      "commit": "eb1968ac69a3d1ad98bacd06b738e9125630c3d3",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 391
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-5414",
+      "repository": "https://github.com/tiaanduplessis/kill-port.git",
+      "commit": "6963218ea712c60f3c165567abc8441905f28384",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-8331",
+      "repository": "https://github.com/twbs/bootstrap.git",
+      "commit": "bf2515ae68f1d89e8b795478aec90f8db61159e5",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "js/src/tooltip.js",
+          "line": 433
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-11022",
+      "repository": "https://github.com/jquery/jquery.git",
+      "commit": "04bf577e2f961c9dde85ddadc77f71bc7bc671cc",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/manipulation.js",
+          "line": 239
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-11079",
+      "repository": "https://github.com/skoranga/node-dns-sync.git",
+      "commit": "93b8034e9475ae65102dac15fffe065616fede1b",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/dns-sync.js",
+          "line": 34
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-14000",
+      "repository": "https://github.com/LLK/scratch-vm.git",
+      "commit": "b67ba75d8b1df4268a9d6727bbc4f32f153c9131",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/extension-support/extension-worker.js",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-15092",
+      "repository": "https://github.com/NUKnightLab/TimelineJS3.git",
+      "commit": "d3b01141fb00a64233d9fc089c917864c1cd4712",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "source/js/media/TL.Media.js",
+          "line": 263
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-15119",
+      "repository": "https://github.com/auth0/lock.git",
+      "commit": "195b5d20ba57060252318fa82135c9fc11a41d9c",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/i18n.js",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-15123",
+      "repository": "https://github.com/codecov/codecov-node.git",
+      "commit": "5f6cc62d4f83bf3a75c973868259798814cd231e",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/codecov.js",
+          "line": 478
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-15138",
+      "repository": "https://github.com/PrismJS/prism.git",
+      "commit": "158caf52343e59a66c2351ff1d83648efe871e33",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "plugins/previewers/prism-previewers.js",
+          "line": 356
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-15256",
+      "repository": "https://github.com/mariocasciaro/object-path.git",
+      "commit": "404223bc2d6c1cf4dc9cd96a7af8dd6a0e851651",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 117
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-27666",
+      "repository": "https://github.com/strapi/strapi.git",
+      "commit": "4d00bc09b8bd7c0938e2d54f480d503560fcb45e",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "packages/strapi-plugin-content-manager/admin/src/components/PreviewWysiwyg/index.js",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-4051",
+      "repository": "https://github.com/dojo/dijit.git",
+      "commit": "d7294be76dd7b251980fe033b1901fa4135f4f4a",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "_editor/RichText.js",
+          "line": 2180
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-4059",
+      "repository": "https://github.com/mikaelbr/mversion.git",
+      "commit": "04df60b7e4e5f6068519dee9d1675de3485b0277",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/git.js",
+          "line": 49
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-4066",
+      "repository": "https://github.com/erelsgl/limdu.git",
+      "commit": "92c045d30de99fd490627d0c4b441d532b0e4a83",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "classifiers/svm/SvmLinear.js",
+          "line": 103
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-5251",
+      "repository": "https://github.com/parse-community/parse-server.git",
+      "commit": "bde8ab6d55e4da556d0e77eb29d4953ca34eeace",
+      "categories": [
+        "sqli"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/RestQuery.js",
+          "line": 667
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-5258",
+      "repository": "https://github.com/dojo/dojo.git",
+      "commit": "35d1141221f9885682c067abae296393e611e968",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "request/util.js",
+          "line": 61
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-6836",
+      "repository": "https://github.com/handsontable/formula-parser.git",
+      "commit": "944136096f44ff4ffd4ba0bcef30970ca4702fce",
+      "categories": [
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/grammar-parser/grammar-parser.js",
+          "line": 226
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7638",
+      "repository": "https://github.com/davideicardi/confinit.git",
+      "commit": "d6c022c35aaee0794494651a4341fadd2db2b471",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.ts",
+          "line": 108
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7676",
+      "repository": "https://github.com/angular/angular.js.git",
+      "commit": "295213df9537666254626ffe3e4a6013122e4802",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/jqLite.js",
+          "line": 218
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7699",
+      "repository": "https://github.com/richardgirges/express-fileupload.git",
+      "commit": "e9848fc1b5c92e175adb18afa0850f6e7dfc0b5c",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/processNested.js",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7720",
+      "repository": "https://github.com/digitalbazaar/forge.git",
+      "commit": "30d560c6b522b9a97a67d9101ecf8f860a4ba63a",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/util.js",
+          "line": 2539
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7750",
+      "repository": "https://github.com/LLK/scratch-svg-renderer.git",
+      "commit": "16974b462c02b2915db728f75eaf682559c50a0b",
+      "categories": [
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/svg-renderer.js",
+          "line": 371
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7752",
+      "repository": "https://github.com/sebhildebrandt/systeminformation.git",
+      "commit": "147550532ab11cac4b609844a519a1d945f5c103",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/network.js",
+          "line": 1079
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-8116",
+      "repository": "https://github.com/sindresorhus/dot-prop.git",
+      "commit": "e0f8abf71164321caf1b20109000b08be506f227",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 70
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-8149",
+      "repository": "https://github.com/zamotany/logkitty.git",
+      "commit": "e1e229687472d8c9266d17f2969ff7431a78db86",
+      "categories": [
+        "cmdi"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/android/adb.ts",
+          "line": 55
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-8203",
+      "repository": "https://github.com/lodash/lodash.git",
+      "commit": "e7b28ea6cb17b4ca021e7c9d66218c8c89782f32",
+      "categories": [
+        "cmdi",
+        "codei",
+        "xss"
+      ],
+      "weaknesses": [
+        {
+          "file": "lodash.js",
+          "line": 2559
+        }
+      ]
+    }
+  ]
+}
