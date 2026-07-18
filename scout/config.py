@@ -18,7 +18,9 @@ else:
 # Shared with the CLI's --fail-on validation.
 FAIL_ON_CHOICES = ("critical", "high", "medium", "low", "never")
 
-_KNOWN_KEYS = {"exclude", "scanners", "fail_on", "engines"}
+# "rules" is read by the custom scanner itself (scout/scanners/custom.py) —
+# listed here so load_config doesn't warn about it as unknown.
+_KNOWN_KEYS = {"exclude", "scanners", "fail_on", "engines", "rules"}
 
 
 @dataclass

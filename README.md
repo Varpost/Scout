@@ -126,7 +126,7 @@ result = eval(trusted_expression)  # scout: ignore
 result = eval(trusted_expression)  # scout: ignore[injection]
 ```
 
-Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Findings that can't carry an inline comment — the app-wide CSRF check has no meaningful line, and lockfile findings live in generated JSON — are handled by turning the scanner off via `[tool.scout] scanners` (below) or accepting them into a baseline (below).
+Bare `scout: ignore` silences every finding on that line. The scoped form silences only the named scanner (`secrets`, `injection`, `headers`, `deps`, `custom`) or finding id (e.g. `injection/eval_usage` — the `id` field in `--format json`). Findings that can't carry an inline comment — the app-wide CSRF check has no meaningful line, and lockfile findings live in generated JSON — are handled by turning the scanner off via `[tool.scout] scanners` (below) or accepting them into a baseline (below).
 
 ## Configuration
 
@@ -141,12 +141,31 @@ Or set project defaults in `pyproject.toml` — Scout reads `[tool.scout]` from 
 ```toml
 [tool.scout]
 exclude = ["tests/fixtures", "vendor"]   # paths or glob patterns to skip
-scanners = ["secrets", "injection"]      # run a subset: secrets, injection, headers, deps
+scanners = ["secrets", "injection"]      # run a subset: secrets, injection, headers, deps, custom
 engines = ["semgrep"]                    # external engines to run and merge (optional)
+rules = ["scout-rules.yml"]              # your own YAML detection rules (optional)
 fail_on = "medium"                       # default threshold for --fail-on
 ```
 
 CLI flags win: `--exclude` replaces the config list, `--engine` replaces `engines`, and `--fail-on` overrides `fail_on`.
+
+## Custom Rules (optional)
+
+Teach Scout project-specific patterns with a YAML file — an id, a regex, a message, a severity:
+
+```yaml
+# scout-rules.yml — referenced from [tool.scout] rules
+rules:
+  - id: internal-api-host
+    pattern: "internal\\.corp\\.example"
+    message: "Internal hostname committed to source."
+    severity: HIGH          # CRITICAL | HIGH | MEDIUM | LOW
+    fix_phase: 1            # optional, 1-5 (default 3)
+    suffixes: [".py", ".ts"] # optional — default: every scanned file
+    fix: "Move the hostname to configuration."
+```
+
+Rules are deliberately grep-with-metadata — need metavariables or taint analysis? That's what `--engine semgrep` is for. A malformed rule warns on stderr and is skipped; it can never break the scan. Custom findings work everywhere native ones do: `scout: ignore[custom]`, baselines, severity gating, JSON/SARIF.
 
 ## External Engines (optional)
 
