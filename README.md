@@ -185,6 +185,10 @@ scout scan . --engine codeql       # builds a CodeQL DB per language (python/js)
 
 Engines are strictly opt-in: the default scan stays zero-dependency and fully deterministic. A requested engine that isn't installed is skipped with a one-line note — never a crash. Engine findings that land on a line a native scanner already flagged are dropped in favor of Scout's own fix guidance.
 
+## VS Code Extension
+
+[scout-vscode/](scout-vscode/) wraps the CLI as a VS Code extension: saving a Python/JS/TS file scans just that file (sub-second) and shows findings as inline squiggles, with taint-traced ones marked *reachable from user input*. A **Scout: Scan Workspace** command fills the Problems panel for the whole project. It shells out to `scoutsec`, so your `[tool.scout]` config applies unchanged.
+
 ## Adopting Scout on an Existing Codebase (Baseline)
 
 Don't want to fix years of findings before turning the CI gate on? Accept the current state, then fail only on new findings:
