@@ -53,6 +53,10 @@ class Finding:
     fix_summary: str = ""
     references: list[str] = field(default_factory=list)
     ai_confirmed: bool | None = None
+    # Best-effort intra-file source→sink signal: True when the flagged sink is
+    # fed by untrusted input (request data, argv, env, input()), False when it
+    # only sees constants/local data, None when undetermined or not analyzed.
+    reachable: bool | None = None
     # Project-level findings (the app-wide CSRF check) have synthetic line
     # anchors, so line-based `scout: ignore` suppression must never apply
     # to them.
