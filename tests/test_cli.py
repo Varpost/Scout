@@ -41,23 +41,21 @@ def test_report_shows_real_scanned_file_count(tmp_path):
 
 
 def test_stub_commands_removed():
-    # fix/validate/report were "Coming soon" stubs for 3 releases (T3.4:
-    # deleted, not implemented — the ai-prompt/MCP handoff covers fixing).
-    # scan is the only command; the removed ones are unknown to the CLI.
+    # validate/report were "Coming soon" stubs for 3 releases (T3.4: deleted,
+    # not implemented). `fix` returned in B2 as a real command; the other
+    # stubs stay unknown to the CLI.
     help_result = runner.invoke(app, ["--help"])
     assert "Scan a project" in help_result.stdout
-    for stub in ("fix", "validate", "report"):
+    for stub in ("validate", "report"):
         assert runner.invoke(app, [stub]).exit_code != 0
 
 
-def test_scan_output_does_not_advertise_stub_commands(tmp_path):
-    # The post-scan next-step must point at the real workflow (ai-prompt),
-    # not the unimplemented `scout fix`.
+def test_scan_output_still_points_at_ai_prompt(tmp_path):
+    # The post-scan next-step keeps pointing at the ai-prompt handoff.
     target = tmp_path / "app.py"
     target.write_text('os.system("ls " + user_input)\n', encoding="utf-8")
     result = runner.invoke(app, ["scan", str(tmp_path), "--no-ai", "--fail-on", "never"])
     assert result.exit_code == 0
-    assert "scout fix" not in result.output
     assert "ai-prompt" in result.output
 
 
