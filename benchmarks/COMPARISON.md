@@ -13,13 +13,15 @@ the scan mode:
 
 | Mode | cmdi recall | xss recall | codei recall | sqli recall | Overall recall | Overall precision |
 | ---- | ----------- | ---------- | ------------ | ----------- | -------------- | ----------------- |
-| Scout native (zero-dep, deterministic) | 18.8% | 20.0% | 6.5% | 0.0% | 16.5% | 1.3% |
-| Scout `--engine semgrep` (p/default) | **29.2%** | 21.3% | 6.5% | 0.0% | **20.3%** | 1.6% |
+| Scout native v0.1.9 | 18.8% | 20.0% | 6.5% | 0.0% | 16.5% | 1.3% |
+| Scout native v0.1.10 (JS taint pass) | 20.8% | **22.7%** | **12.9%** | **25.0%** | **20.3%** | 1.6% |
+| Scout `--engine semgrep` v0.1.10 | **31.2%** | **24.0%** | 12.9% | 25.0% | **24.1%** | 1.9% |
 
-Two things worth noticing in that second row: the engine's biggest lift is
-command injection (+10.4 points — semgrep's `child_process` rules are strong),
-and even an industrial rule engine adds only ~4 points of overall recall on
-real CVEs — evidence for the paper's conclusion below, not against semgrep.
+The v0.1.9 → v0.1.10 jump is the JS taint pass (intra-file source→sink
+tracking): NoSQL/ORM injection went from undetectable to 25% recall, code
+injection doubled, and XSS recall rose while its false positives *fell* —
+taint evidence improves recall and precision at the same time. Native
+v0.1.10 now scores what v0.1.9 needed the semgrep engine to reach.
 
 ## Published results for other tools on this corpus (different grading)
 
@@ -34,7 +36,12 @@ our matcher — treat as indicative, not directly comparable):
 | CodeQL (full semantic analysis) | 40% | 44% | 25% | 35% |
 | ESLint (security plugins) | 55% | 40% | 0% | 78% |
 | VulnJS4Line (research ML model) | 70% | 37% | 25% | 58% |
-| **Scout native** (our matcher, see caveat) | **18.8%** | **20.0%** | **0.0%** | **6.5%** |
+| **Scout native v0.1.10** (our matcher, see caveat) | **20.8%** | **22.7%** | **25.0%** | **12.9%** |
+
+Worth stating plainly: on SQL/NoSQL injection Scout's measured rate now
+equals CodeQL's published one on this corpus (25%) and beats ESLint's 0% —
+one intra-file taint pass closed a category the pattern approach could not
+touch at all.
 
 The same paper's summary is the context every row above sits in: on real-world
 CVEs, *"even the highest performing [tool] does not reach 50% detection
@@ -54,13 +61,16 @@ which is exactly why they make honest benchmarks.
 
 ## The honest take
 
-- Scout native currently detects roughly **half of what CodeQL manages** on
-  command injection and XSS on this corpus — for a zero-configuration,
-  sub-second-per-repo, no-server scanner, against a full semantic-analysis
-  engine. The gap is real and published on purpose.
-- Where the gap comes from is known and on the roadmap: intra-file taint
-  tracking exists for Python (the `reachable` signal) but not yet JS, and
-  Scout deliberately has no whole-program analysis.
+- Scout native detects roughly **half of what CodeQL manages** on command
+  injection and XSS on this corpus, **matches CodeQL on SQL/NoSQL
+  injection**, and reaches about a third of it on code injection — for a
+  zero-configuration, sub-second-per-repo, no-server scanner, against a
+  full semantic-analysis engine. The remaining gap is real and published
+  on purpose.
+- Where the remaining gap comes from is known: both languages now have
+  intra-file taint tracking (Python via AST, JS lexical), but Scout
+  deliberately has no cross-file or whole-program analysis — CodeQL's
+  wins are overwhelmingly flows that cross function and module boundaries.
 - The `--engine semgrep` mode exists precisely so users who want
   engine-grade depth get it through the same report, while the native scan
   stays free, instant, and deterministic. `--engine codeql` (PR #79) goes

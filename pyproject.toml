@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scout-security"
-version = "0.1.9"
+version = "0.1.10"
 description = "AI security team in a CLI. Find, plan, fix, and verify vulnerabilities — free, local, no signup."
 readme = "README.md"
 license = {text = "MIT"}
