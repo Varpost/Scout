@@ -54,6 +54,7 @@ CATEGORY_TITLES = {
         "exec() with template literal",
         "exec() with string concatenation",
         "child_process exec with variable command",
+        "child_process exec (member call)",
         "spawn() with shell:true",
         "exec() with user-controlled command",
     },

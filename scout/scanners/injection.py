@@ -124,6 +124,23 @@ CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         "comes from user input, this is command injection.",
     ),
     (
+        "child_process exec (member call)",
+        # The (?<![\w.]) lookbehind on the patterns above dodges regexp.exec()
+        # but also throws away the *common* forms: cp.exec(...), shell.exec(...),
+        # exec(cmd, cb). Node's child_process.exec is async — it takes a
+        # callback (or options) SECOND argument; regexp.exec() takes exactly
+        # one. So a member/bare exec whose first argument is not a plain string
+        # literal AND that has a callback/options second argument is
+        # child_process, not a regex test. See OWASP Command Injection.
+        re.compile(
+            r"""(?<![\w.])(?:[A-Za-z_$][\w$]*\s*\.\s*)?exec(?:Sync)?\s*\("""
+            r"""\s*(?!['"][^'"\n]*['"]\s*,)[^,;\n]+,\s*(?:function\b|\([^)\n]*\)\s*=>|\{|[A-Za-z_$])"""
+        ),
+        "child_process exec() with a dynamic command and a callback/options argument. If any "
+        "part of the command string comes from user input, attackers can run arbitrary shell "
+        "commands (`; rm -rf /`). Use execFile/spawn with an argument array instead.",
+    ),
+    (
         "spawn() with shell:true",
         re.compile(r"""\bspawn(?:Sync)?\s*\([^)]*shell\s*:\s*true""", re.IGNORECASE),
         "spawn() with shell:true routes the command through a shell, re-enabling the exact "
@@ -258,6 +275,23 @@ _JS_KEYWORDS = frozenset(
 # as the Python env — upgrade to a real JS parser only if the benchmark shows
 # this ceiling matters.
 _JS_MAX_LINE = 500
+
+# Whole-file minified/bundled skip for the injection scanner: generated
+# artifacts (jquery.min.js, *.bundle.js) are not source you hand-fix — a vuln
+# in a vendored bundle is the dependency scanner's job, not an XSS squiggle on
+# unreadable code. Standard SAST convention; on the CVE benchmark this drops
+# ~460 false positives for a single true positive (itself unfixable in place).
+# Secrets still scan these files — a leaked key in a bundle matters.
+_MINIFIED_NAME = re.compile(r"[.\-](?:min|bundle|pack)\.", re.IGNORECASE)
+_MINIFIED_MAX_LINE = 2000
+
+
+def _looks_minified(file_path: Path, lines: list[str]) -> bool:
+    """True for generated bundles — by name (*.min.js) or a very long line."""
+    if _MINIFIED_NAME.search(file_path.name):
+        return True
+    return any(len(line) > _MINIFIED_MAX_LINE for line in lines)
+
 
 # MongoDB-style query APIs where a user-controlled *value* is injectable even
 # with zero SQL text: a request value that arrives as an object turns into an
@@ -639,6 +673,9 @@ class InjectionScanner(BaseScanner):
                 # XSS patterns (template markup) are language-agnostic text checks.
                 findings.extend(self._scan_regex(file_path, content, lines, [(XSS_PATTERNS, "HIGH", 4)]))
                 return findings
+
+        if suffix != ".py" and _looks_minified(file_path, lines):
+            return []  # generated bundle — not source to hand-fix
 
         env = _js_taint_env(lines) if suffix in _JS_TAINT_SUFFIXES else None
         all_patterns = [

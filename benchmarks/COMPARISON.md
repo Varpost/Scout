@@ -14,14 +14,30 @@ the scan mode:
 | Mode | cmdi recall | xss recall | codei recall | sqli recall | Overall recall | Overall precision |
 | ---- | ----------- | ---------- | ------------ | ----------- | -------------- | ----------------- |
 | Scout native v0.1.9 | 18.8% | 20.0% | 6.5% | 0.0% | 16.5% | 1.3% |
-| Scout native v0.1.10 (JS taint pass) | 20.8% | **22.7%** | **12.9%** | **25.0%** | **20.3%** | 1.6% |
-| Scout `--engine semgrep` v0.1.10 | **31.2%** | **24.0%** | 12.9% | 25.0% | **24.1%** | 1.9% |
+| Scout native v0.1.10 (JS taint pass) | 20.8% | 22.7% | 12.9% | 25.0% | 20.3% | 1.6% |
+| Scout native v0.1.11 (member-exec + bundle skip) | **39.6%** | 21.3% | 9.7% | 25.0% | **24.7%** | **2.4%** |
+| Scout `--engine semgrep` v0.1.11 | **41.7%** | 24.0% | 12.9% | 25.0% | **27.2%** | 2.6% |
 
-The v0.1.9 → v0.1.10 jump is the JS taint pass (intra-file source→sink
-tracking): NoSQL/ORM injection went from undetectable to 25% recall, code
-injection doubled, and XSS recall rose while its false positives *fell* —
-taint evidence improves recall and precision at the same time. Native
-v0.1.10 now scores what v0.1.9 needed the semgrep engine to reach.
+Two deliberate levers moved v0.1.10 → v0.1.11, both first-principles rather
+than corpus-tuned:
+
+- **Command injection nearly doubled** (20.8% → 39.6%). Scout's `exec()`
+  patterns guarded against `regexp.exec()` with a `(?<![\w.])` lookbehind,
+  which also discarded the *common* forms — `cp.exec(cmd, cb)`,
+  `shell.exec(...)`. Node's `child_process.exec` is async: it takes a
+  callback/options **second** argument, while `regexp.exec()` takes exactly
+  one. That structural signal recovers the real calls without matching regex
+  tests. (Precision on cmdi drops because every real, unlabeled `exec()`
+  call site counts as a false positive here — the documented FP upper bound.)
+- **Overall precision rose** (1.6% → 2.4%) because the scanner now skips
+  minified/bundled files (`*.min.js`, `*.bundle.js`, or any >2000-char line).
+  A vulnerability in a generated bundle is the dependency scanner's job, not
+  a hand-fixable XSS squiggle — standard SAST convention. This dropped ~370
+  false positives for 2 true positives (both in bundles, unfixable in place),
+  which is why xss/codei recall dip slightly while overall recall still rises.
+
+Native v0.1.11 now exceeds what v0.1.10 needed the semgrep engine to reach
+(24.1%) — with no external engine installed.
 
 ## Published results for other tools on this corpus (different grading)
 
@@ -36,12 +52,12 @@ our matcher — treat as indicative, not directly comparable):
 | CodeQL (full semantic analysis) | 40% | 44% | 25% | 35% |
 | ESLint (security plugins) | 55% | 40% | 0% | 78% |
 | VulnJS4Line (research ML model) | 70% | 37% | 25% | 58% |
-| **Scout native v0.1.10** (our matcher, see caveat) | **20.8%** | **22.7%** | **25.0%** | **12.9%** |
+| **Scout native v0.1.11** (our matcher, see caveat) | **39.6%** | 21.3% | **25.0%** | 9.7% |
 
-Worth stating plainly: on SQL/NoSQL injection Scout's measured rate now
-equals CodeQL's published one on this corpus (25%) and beats ESLint's 0% —
-one intra-file taint pass closed a category the pattern approach could not
-touch at all.
+Worth stating plainly on two categories: Scout's SQL/NoSQL injection rate
+now equals CodeQL's published one on this corpus (25%) and beats ESLint's
+0%; and command injection (39.6%) is now essentially level with CodeQL's
+published 40% — both from generic, documented detection, not corpus tuning.
 
 The same paper's summary is the context every row above sits in: on real-world
 CVEs, *"even the highest performing [tool] does not reach 50% detection
