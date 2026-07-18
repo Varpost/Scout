@@ -325,6 +325,37 @@ _JS_EXEC_IDENT_DESCRIPTION = (
     "argument array, or validate against an allowlist."
 )
 
+# Path traversal (OWASP A01) and SSRF (OWASP A10) share the taint machinery
+# with the injection sinks: a user-controlled value reaching a file-path or
+# request-URL sink. Both are taint-gated (fire only when the argument traces
+# to a source), so they inherit the low false-positive rate of the NoSQL sink.
+_PATH_TRAVERSAL_DESCRIPTION = (
+    "A user-controlled value is used as a file path. An attacker can send "
+    "`../../etc/passwd` or an absolute path to read or overwrite files outside the "
+    "intended directory. Resolve the path and confirm it stays within an allowed "
+    "base directory (e.g. path.resolve then startsWith the base) before using it."
+)
+_SSRF_DESCRIPTION = (
+    "A user-controlled value is used as a request URL (server-side request forgery). "
+    "An attacker can point it at internal services (http://169.254.169.254/ cloud "
+    "metadata, localhost admin ports) or the file:// scheme. Validate the URL host "
+    "and scheme against an allowlist before fetching."
+)
+
+# File-path sinks: fs reads/writes and Express file responses. Taint-gated, so
+# a plain fs.readFileSync("config.json") never fires.
+_JS_PATH_SINK = re.compile(
+    r"""\.(?:readFile|readFileSync|createReadStream|writeFile|writeFileSync|appendFile|unlink|sendFile|download)"""
+    r"""\s*\(\s*(?P<arg>[^,)\n]+)"""
+)
+# HTTP client sinks: bare fetch/axios/got/superagent, or a .get/.post/... on a
+# known client receiver (never a generic Map.get — the receiver list gates it).
+_JS_SSRF_SINK = re.compile(
+    r"""(?<![\w.$])(?:fetch|axios|got|superagent)\s*\(\s*(?P<arg>[^,)\n]+)"""
+    r"""|\b(?:axios|http|https|got|request|superagent|fetch)"""
+    r"""\.(?:get|post|put|patch|del|delete|head|request)\s*\(\s*(?P<arg2>[^,)\n]+)"""
+)
+
 
 def _js_rhs_state(rhs: str, env: dict[str, bool | None]) -> bool | None:
     """Taint state of a right-hand side: source/tainted, constant, or unknown."""
@@ -399,6 +430,13 @@ _SQL_SINK_NAMES = frozenset({"execute", "executemany", "query", "raw"})
 # Bare names from `from subprocess import run` — a shell=True keyword on
 # anything else (unknown APIs) is not treated as evidence.
 _SUBPROCESS_FUNCS = frozenset({"run", "call", "Popen", "check_call", "check_output"})
+
+# Path-traversal sinks: builtin open() and Flask's file responses. Taint-gated,
+# so open("config.json") never fires — only a user-controlled path does.
+_PY_PATH_SINKS = frozenset({"open", "send_file", "send_from_directory"})
+# SSRF sinks: HTTP-client verbs on a known client object, or a bare urlopen.
+_PY_SSRF_METHODS = frozenset({"get", "post", "put", "delete", "patch", "head", "request", "urlopen"})
+_PY_SSRF_RECEIVERS = frozenset({"requests", "httpx", "urllib", "session", "aiohttp", "urlopen"})
 
 # (line, title, description, severity, fix_phase, reachable)
 _AstHit = tuple[int, str, str, str, int, bool | None]
@@ -566,7 +604,39 @@ class _PySinkVisitor(ast.NodeVisitor):
         self._check_os_system(node)
         self._check_shell_true(node)
         self._check_sql(node)
+        self._check_path_traversal(node)
+        self._check_ssrf(node)
         self.generic_visit(node)
+
+    def _add_if_tainted(self, node: ast.Call, arg: ast.expr, title: str, description: str) -> None:
+        """Add a HIGH taint-gated finding only when the argument reaches a source."""
+        if _reachability([arg], self.env) is True:
+            self._add(node, title, description, "HIGH", 4, [arg])
+
+    def _check_path_traversal(self, node: ast.Call) -> None:
+        func = node.func
+        name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else None
+        if name not in _PY_PATH_SINKS or not node.args:
+            return
+        # send_from_directory(directory, filename): the user-controlled part is
+        # the filename (2nd arg); everything else takes the first argument.
+        arg = node.args[1] if name == "send_from_directory" and len(node.args) > 1 else node.args[0]
+        self._add_if_tainted(node, arg, "Path traversal", _PATH_TRAVERSAL_DESCRIPTION)
+
+    def _check_ssrf(self, node: ast.Call) -> None:
+        func = node.func
+        if not node.args:
+            return
+        is_ssrf = False
+        if isinstance(func, ast.Name) and func.id == "urlopen":
+            is_ssrf = True
+        elif isinstance(func, ast.Attribute) and func.attr in _PY_SSRF_METHODS:
+            root: ast.expr = func.value
+            while isinstance(root, ast.Attribute):
+                root = root.value
+            is_ssrf = isinstance(root, ast.Name) and root.id in _PY_SSRF_RECEIVERS
+        if is_ssrf:
+            self._add_if_tainted(node, node.args[0], "Server-side request forgery (SSRF)", _SSRF_DESCRIPTION)
 
     def _check_eval_exec(self, node: ast.Call) -> None:
         func = node.func
@@ -795,5 +865,15 @@ class InjectionScanner(BaseScanner):
                     if env.get(match.group("first")) is True:
                         findings.append(
                             self._finding(file_path, lines, line_num, title, description, "CRITICAL", 4, reachable=True)
+                        )
+            for sink, title, description in (
+                (_JS_PATH_SINK, "Path traversal", _PATH_TRAVERSAL_DESCRIPTION),
+                (_JS_SSRF_SINK, "Server-side request forgery (SSRF)", _SSRF_DESCRIPTION),
+            ):
+                for match in sink.finditer(line):
+                    arg = match.group("arg") or match.groupdict().get("arg2")
+                    if arg and _js_reachable(arg, env) is True:
+                        findings.append(
+                            self._finding(file_path, lines, line_num, title, description, "HIGH", 4, reachable=True)
                         )
         return findings
