@@ -341,6 +341,26 @@ _SSRF_DESCRIPTION = (
     "metadata, localhost admin ports) or the file:// scheme. Validate the URL host "
     "and scheme against an allowlist before fetching."
 )
+# Insecure deserialization (CWE-502), open redirect (CWE-601), and weak
+# randomness for secrets (CWE-330): three more classes over the same taint
+# engine (the first two taint-gated; weak-randomness is keyword-gated).
+_DESERIALIZATION_DESCRIPTION = (
+    "Untrusted data is deserialized with an unsafe loader (pickle/marshal, or "
+    "yaml.load without SafeLoader). Deserializing attacker-controlled bytes runs "
+    "arbitrary code (RCE). Use yaml.safe_load / JSON, or a signed schema-checked "
+    "format; never unpickle data you did not produce."
+)
+_OPEN_REDIRECT_DESCRIPTION = (
+    "A user-controlled value is used as a redirect target. An attacker can send a "
+    "victim to `//evil.example` for phishing or OAuth-token theft. Redirect only to "
+    "a fixed allowlist of paths, or confirm the target is a relative same-site URL."
+)
+_WEAK_RANDOM_DESCRIPTION = (
+    "A security-sensitive value (token/secret/password) is generated with a "
+    "non-cryptographic RNG (Math.random / random.*), whose output is predictable and "
+    "guessable. Use a CSPRNG: Python `secrets`/`os.urandom`, or Node "
+    "`crypto.randomBytes`/`crypto.randomUUID`."
+)
 
 # File-path sinks: fs reads/writes and Express file responses. Taint-gated, so
 # a plain fs.readFileSync("config.json") never fires.
@@ -355,6 +375,22 @@ _JS_SSRF_SINK = re.compile(
     r"""|\b(?:axios|http|https|got|request|superagent|fetch)"""
     r"""\.(?:get|post|put|patch|del|delete|head|request)\s*\(\s*(?P<arg2>[^,)\n]+)"""
 )
+# node-serialize unserialize() — the classic Node RCE deserialization sink.
+# \b (not (?<![\w.])) so the common dotted form serialize.unserialize(x) matches.
+_JS_DESERIALIZE_SINK = re.compile(r"""\bunserialize\s*\(\s*(?P<arg>[^,)\n]+)""")
+# res/ctx.redirect(...) — capture the whole arg list ([^)\n]+) so the status-code
+# form redirect(301, url) is taint-checked on the url too.
+_JS_REDIRECT_SINK = re.compile(r"""(?<![\w.])(?:res|response|reply|ctx)\s*\.\s*redirect\s*\(\s*(?P<arg>[^)\n]+)""")
+
+# Weak-randomness (CWE-330) is keyword-gated, not taint-gated: a non-crypto RNG
+# call AND a security-token keyword on the same line. Language-agnostic — runs
+# on Python and JS alike. Both regexes are bounded (no unbounded gap), so they
+# stay linear on long lines.
+_WEAK_RNG_CALL = re.compile(
+    r"""\bMath\.random\s*\("""
+    r"""|(?<![\w.])random\.(?:random|randint|randrange|randbytes|choice|choices|getrandbits|uniform|sample|shuffle)\s*\("""
+)
+_SECURITY_TOKEN_KEYWORD = re.compile(r"""(?i)\b(?:token|secret|password|passwd|api[_-]?key|otp|csrf|nonce|salt)\w*""")
 
 
 def _js_rhs_state(rhs: str, env: dict[str, bool | None]) -> bool | None:
@@ -437,6 +473,12 @@ _PY_PATH_SINKS = frozenset({"open", "send_file", "send_from_directory"})
 # SSRF sinks: HTTP-client verbs on a known client object, or a bare urlopen.
 _PY_SSRF_METHODS = frozenset({"get", "post", "put", "delete", "patch", "head", "request", "urlopen"})
 _PY_SSRF_RECEIVERS = frozenset({"requests", "httpx", "urllib", "session", "aiohttp", "urlopen"})
+# Deserialization sinks: <receiver>.load(s)(...) where the receiver is an unsafe
+# format. yaml is handled separately (only unsafe *without* a Safe loader).
+_PY_DESERIALIZE_METHODS = frozenset({"loads", "load"})
+_PY_DESERIALIZE_RECEIVERS = frozenset({"pickle", "cPickle", "_pickle", "marshal", "dill", "shelve"})
+# Redirect helpers across frameworks (Flask/Django/FastAPI/Starlette).
+_PY_REDIRECT_NAMES = frozenset({"redirect", "HttpResponseRedirect", "RedirectResponse"})
 
 # (line, title, description, severity, fix_phase, reachable)
 _AstHit = tuple[int, str, str, str, int, bool | None]
@@ -606,6 +648,8 @@ class _PySinkVisitor(ast.NodeVisitor):
         self._check_sql(node)
         self._check_path_traversal(node)
         self._check_ssrf(node)
+        self._check_deserialization(node)
+        self._check_open_redirect(node)
         self.generic_visit(node)
 
     def _add_if_tainted(self, node: ast.Call, arg: ast.expr, title: str, description: str) -> None:
@@ -637,6 +681,40 @@ class _PySinkVisitor(ast.NodeVisitor):
             is_ssrf = isinstance(root, ast.Name) and root.id in _PY_SSRF_RECEIVERS
         if is_ssrf:
             self._add_if_tainted(node, node.args[0], "Server-side request forgery (SSRF)", _SSRF_DESCRIPTION)
+
+    def _check_deserialization(self, node: ast.Call) -> None:
+        func = node.func
+        if not isinstance(func, ast.Attribute) or not node.args:
+            return
+        # pickle/marshal load(s) — taint-gated (unpickling your own cache is fine).
+        if func.attr in _PY_DESERIALIZE_METHODS:
+            root: ast.expr = func.value
+            while isinstance(root, ast.Attribute):
+                root = root.value
+            if isinstance(root, ast.Name) and root.id in _PY_DESERIALIZE_RECEIVERS:
+                self._add_if_tainted(node, node.args[0], "Insecure deserialization", _DESERIALIZATION_DESCRIPTION)
+                return
+        # yaml.load without a Safe loader — flat: the missing loader IS the bug
+        # (yaml.load runs arbitrary Python via !!python tags), same as bandit B506.
+        if func.attr == "load" and isinstance(func.value, ast.Name) and func.value.id == "yaml":
+            if not self._has_safe_loader(node):
+                self._add(node, "Insecure deserialization", _DESERIALIZATION_DESCRIPTION, "HIGH", 4)
+
+    @staticmethod
+    def _has_safe_loader(node: ast.Call) -> bool:
+        """True when a yaml.load call names a Safe loader (positional or Loader=)."""
+        loaders = [*node.args[1:], *(kw.value for kw in node.keywords if kw.arg == "Loader")]
+        for expr in loaders:
+            name = expr.attr if isinstance(expr, ast.Attribute) else expr.id if isinstance(expr, ast.Name) else ""
+            if "Safe" in name:
+                return True
+        return False
+
+    def _check_open_redirect(self, node: ast.Call) -> None:
+        func = node.func
+        name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else None
+        if name in _PY_REDIRECT_NAMES and node.args:
+            self._add_if_tainted(node, node.args[0], "Open redirect", _OPEN_REDIRECT_DESCRIPTION)
 
     def _check_eval_exec(self, node: ast.Call) -> None:
         func = node.func
@@ -742,6 +820,7 @@ class InjectionScanner(BaseScanner):
                 findings = self._scan_python_ast(tree, file_path, lines)
                 # XSS patterns (template markup) are language-agnostic text checks.
                 findings.extend(self._scan_regex(file_path, content, lines, [(XSS_PATTERNS, "HIGH", 4)]))
+                findings.extend(self._scan_weak_random(file_path, lines))
                 return findings
 
         if suffix != ".py" and _looks_minified(file_path, lines):
@@ -755,6 +834,7 @@ class InjectionScanner(BaseScanner):
             (XSS_PATTERNS, "HIGH", 4),
         ]
         findings = self._scan_regex(file_path, content, lines, all_patterns, env=env)
+        findings.extend(self._scan_weak_random(file_path, lines))
         if env is not None:
             findings.extend(self._scan_js_taint_sinks(file_path, lines, env))
         return findings
@@ -869,6 +949,8 @@ class InjectionScanner(BaseScanner):
             for sink, title, description in (
                 (_JS_PATH_SINK, "Path traversal", _PATH_TRAVERSAL_DESCRIPTION),
                 (_JS_SSRF_SINK, "Server-side request forgery (SSRF)", _SSRF_DESCRIPTION),
+                (_JS_DESERIALIZE_SINK, "Insecure deserialization", _DESERIALIZATION_DESCRIPTION),
+                (_JS_REDIRECT_SINK, "Open redirect", _OPEN_REDIRECT_DESCRIPTION),
             ):
                 for match in sink.finditer(line):
                     arg = match.group("arg") or match.groupdict().get("arg2")
@@ -876,4 +958,24 @@ class InjectionScanner(BaseScanner):
                         findings.append(
                             self._finding(file_path, lines, line_num, title, description, "HIGH", 4, reachable=True)
                         )
+        return findings
+
+    def _scan_weak_random(self, file_path: Path, lines: list[str]) -> list[Finding]:
+        """Keyword-gated: a non-crypto RNG call plus a token/secret keyword on one line."""
+        findings: list[Finding] = []
+        for line_num, line in enumerate(lines, start=1):
+            if len(line) > _JS_MAX_LINE or line.lstrip().startswith(("#", "//", "*", "/*")):
+                continue
+            if _WEAK_RNG_CALL.search(line) and _SECURITY_TOKEN_KEYWORD.search(line):
+                findings.append(
+                    self._finding(
+                        file_path,
+                        lines,
+                        line_num,
+                        "Weak randomness for security value",
+                        _WEAK_RANDOM_DESCRIPTION,
+                        "MEDIUM",
+                        3,
+                    )
+                )
         return findings
