@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@v0.1.12
+      - uses: Varpost/Scout@v0.1.13
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -110,7 +110,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.12        # use the latest tag
+    rev: v0.1.13        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -218,28 +218,29 @@ Honest scope: [Gitleaks](https://github.com/gitleaks/gitleaks) and [TruffleHog](
 |---------|---------|----------|
 | `secrets` | AWS/Google keys, GitHub/GitLab tokens, Anthropic & OpenAI keys, Slack/npm/PyPI tokens, Stripe keys, DB URLs, private keys, passwords | CRITICAL |
 | `injection` | SQL injection, NoSQL operator injection, command injection, eval()/Function/vm, XSS | CRITICAL |
-| `injection` (taint-gated) | Path traversal (file reads/writes, `sendFile`), SSRF (`fetch`/`requests`/`axios`) — fire only when user input reaches the sink | HIGH |
+| `injection` (taint-gated) | Path traversal (file reads/writes, `sendFile`), SSRF (`fetch`/`requests`/`axios`), insecure deserialization (`pickle`/`yaml.load`/`unserialize`), open redirect (`redirect(...)`) — fire only when user input reaches the sink | HIGH |
+| `injection` (keyword-gated) | Weak randomness for tokens/secrets (`Math.random`/`random.*` used for a token/password/OTP) | MEDIUM |
 | `headers` | Missing security headers (Express/Flask/Django/FastAPI), wildcard CORS, missing CSRF | LOW–MEDIUM |
 | `deps` | Known vulnerabilities in pip + npm dependencies (via OSV.dev) | HIGH |
 
 ### Language scope
 
-Deep analysis — **injection** (SQL/command/XSS) and **security headers** — targets **Python and JS/TS**, where the detection patterns are idiom-specific. Both languages get intra-file **taint tracking** (Python via the stdlib AST, JS/TS via a lexical pass): findings carry a `reachable` verdict when a sink traces back to user input (`request.*`, `req.body`, `location.hash`, …), ORM/NoSQL sinks fire *only* on taint evidence, and XSS sinks fed by provable in-file constants are dropped instead of reported. The same taint engine powers **path traversal** (a user-controlled value reaching `open`/`fs.readFile`/`sendFile`) and **SSRF** (reaching `requests`/`fetch`/`axios`) detection — both gated on reachability, so `open("config.json")` and `axios.get("https://api.example.com")` never fire. **Secret detection is language-agnostic**: it runs on every common source and config file Scout collects (Go, Java, Ruby, PHP, C/C++, Rust, shell, `.env`, `Dockerfile`, `docker-compose`, Terraform, …), so a hardcoded key is caught whatever language leaked it. Dependency scanning covers `requirements.txt` and `package-lock.json`.
+Deep analysis — **injection** (SQL/command/XSS) and **security headers** — targets **Python and JS/TS**, where the detection patterns are idiom-specific. Both languages get intra-file **taint tracking** (Python via the stdlib AST, JS/TS via a lexical pass): findings carry a `reachable` verdict when a sink traces back to user input (`request.*`, `req.body`, `location.hash`, …), ORM/NoSQL sinks fire *only* on taint evidence, and XSS sinks fed by provable in-file constants are dropped instead of reported. The same taint engine powers **path traversal** (`open`/`fs.readFile`/`sendFile`), **SSRF** (`requests`/`fetch`/`axios`), **insecure deserialization** (`pickle`/`yaml.load`/`unserialize`), and **open redirect** (`redirect(...)`) detection — all gated on reachability, so `open("config.json")` and `axios.get("https://api.example.com")` never fire. **Weak randomness** for tokens/secrets (`Math.random`/`random.*`) is keyword-gated instead — flagged only alongside a token/password/OTP name. **Secret detection is language-agnostic**: it runs on every common source and config file Scout collects (Go, Java, Ruby, PHP, C/C++, Rust, shell, `.env`, `Dockerfile`, `docker-compose`, Terraform, …), so a hardcoded key is caught whatever language leaked it. Dependency scanning covers `requirements.txt` and `package-lock.json`.
 
 ### Measured accuracy
 
 Scout's injection scanner is measured against 104 real CVEs from the [OpenSSF CVE Benchmark](https://github.com/ossf-cve-benchmark/ossf-cve-benchmark) — real vulnerable commits in real JS/TS projects, no synthetic test cases. Full methodology, caveats, and reproduction steps live in [benchmarks/](benchmarks/); results are versioned per release, and this README only ever cites numbers present in a committed results file.
 
-Honest reading of the [v0.1.11 results](benchmarks/results/0.1.12/summary-native.md): overall recall is **24.7%** at **2.4%** precision — both up release over release (16.5% / 1.3% in v0.1.9). Command injection is the standout at **39.6%** recall (essentially level with CodeQL's published 40% on this corpus), from recognizing `child_process.exec(cmd, callback)` member calls; SQL/NoSQL injection holds at 25% (matching CodeQL) via the JS taint pass. Precision rose because the scanner now skips minified/bundled files — a vuln in a generated bundle is the dependency scanner's job. Adding `--engine semgrep` lifts overall recall to [27.2%](benchmarks/results/0.1.12/summary-native-semgrep.md) (command injection to 41.7%). The false-positive counts are an upper bound by benchmark convention — every unlabeled real `exec()`/sink call counts against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+Honest reading of the [v0.1.13 results](benchmarks/results/0.1.13/summary-native.md): overall recall is **24.7%** at **2.4%** precision — both up release over release (16.5% / 1.3% in v0.1.9). Command injection is the standout at **39.6%** recall (essentially level with CodeQL's published 40% on this corpus), from recognizing `child_process.exec(cmd, callback)` member calls; SQL/NoSQL injection holds at 25% (matching CodeQL) via the JS taint pass. Precision rose because the scanner now skips minified/bundled files — a vuln in a generated bundle is the dependency scanner's job. Adding `--engine semgrep` lifts overall recall to [27.2%](benchmarks/results/0.1.13/summary-native-semgrep.md) (command injection to 41.7%). The false-positive counts are an upper bound by benchmark convention — every unlabeled real `exec()`/sink call counts against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
 
-The v0.1.12 path-traversal and SSRF detectors are new vulnerability *classes* (CWE-22 / CWE-918) the injection corpus above does not score — it pins only SQL/command/XSS/code-injection CVEs — so these figures are unchanged by them. Their correctness is covered by unit tests; extending the benchmark corpus to those CWEs is a tracked follow-up. They are taint-gated, so they add real coverage without adding false-positive noise to the numbers above.
+The path-traversal + SSRF (v0.1.12) and deserialization + open-redirect + weak-randomness (v0.1.13) detectors are new vulnerability *classes* (CWE-22/918/502/601/330) the injection corpus above does not score — it pins only SQL/command/XSS/code-injection CVEs — so these figures are unchanged by them (verified: identical TP/FP/FN each release). Their correctness is covered by unit tests; extending the benchmark corpus to those CWEs is a tracked follow-up. All are taint- or keyword-gated, so they add real coverage without adding false-positive noise to the numbers above.
 
 ## Example Output
 
 ```
 $ scout scan ./my-app
 
-Scout v0.1.12 scanning: ./my-app
+Scout v0.1.13 scanning: ./my-app
 
   Scanning 47 files...
 

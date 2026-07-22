@@ -536,3 +536,71 @@ def test_new_categories_are_high_severity_phase_4():
     findings = _scan_py('p = request.args["p"]\nopen(p)\n')
     assert findings[0].severity == "HIGH"
     assert findings[0].fix_phase == 4
+
+
+# --- E1: deserialization (CWE-502), open redirect (CWE-601), weak randomness (CWE-330) ---
+
+
+def test_py_pickle_loads_tainted_is_flagged():
+    findings = _scan_py("import pickle\nd = request.data\npickle.loads(d)\n")
+    assert [(f.title, f.reachable) for f in findings] == [("Insecure deserialization", True)]
+
+
+def test_py_pickle_loads_untainted_is_not_flagged():
+    assert _scan_py("import pickle\npickle.loads(cached_bytes)\n") == []
+
+
+def test_py_yaml_load_without_safe_loader_is_flagged_flat():
+    # Missing SafeLoader is the vuln — flagged regardless of taint (bandit B506).
+    findings = _scan_py("import yaml\nyaml.load(open('c.yml'))\n")
+    assert any(f.title == "Insecure deserialization" for f in findings)
+
+
+def test_py_yaml_safe_variants_are_not_flagged():
+    assert _scan_py("import yaml\nyaml.load(f, Loader=yaml.SafeLoader)\n") == []
+    assert _scan_py("import yaml\nyaml.safe_load(f)\n") == []
+
+
+def test_js_unserialize_tainted_flagged_dotted_and_bare():
+    for content in (
+        "const d = req.body.data;\nserialize.unserialize(d);\n",
+        "const d = req.body.data;\nunserialize(d);\n",
+    ):
+        assert any(f.title == "Insecure deserialization" for f in _scan_js(content)), content
+
+
+def test_py_open_redirect_taint_gated():
+    findings = _scan_py('to = request.args["next"]\nreturn redirect(to)\n')
+    assert [(f.title, f.reachable) for f in findings] == [("Open redirect", True)]
+
+
+def test_py_redirect_constant_is_not_flagged():
+    assert _scan_py('return redirect("/home")\n') == []
+
+
+def test_js_open_redirect_taint_gated():
+    assert any(f.title == "Open redirect" for f in _scan_js("res.redirect(req.query.url);\n"))
+    assert _scan_js('res.redirect("/login");\n') == []
+
+
+def test_js_redirect_with_status_code_form_flags_url():
+    findings = _scan_js("const u = req.query.url;\nres.redirect(301, u);\n")
+    assert any(f.title == "Open redirect" for f in findings)
+
+
+def test_weak_random_for_token_is_flagged_both_languages():
+    js = _scan_js("const token = Math.random().toString(36).slice(2);\n")
+    py = _scan_py("otp = random.randint(1000, 9999)\n")
+    assert [f.title for f in js] == ["Weak randomness for security value"]
+    assert [f.title for f in py] == ["Weak randomness for security value"]
+    assert js[0].severity == "MEDIUM"
+
+
+def test_weak_random_without_security_keyword_is_not_flagged():
+    assert _scan_js("const jitter = Math.random() * 1000;\n") == []
+    assert _scan_py("x = random.random()\n") == []
+
+
+# (The property "E1 titles are not scored by the injection benchmark" is proven
+# empirically by the benchmark run showing identical TP/FP/FN, not by a unit
+# test — importing benchmarks/ here would couple the suite to a non-package.)
