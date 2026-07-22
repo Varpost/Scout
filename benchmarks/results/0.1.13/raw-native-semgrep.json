@@ -1,7 +1,7 @@
 {
   "scout_version": "0.1.13",
   "mode": "native-semgrep",
-  "scanned": 104,
+  "scanned": 140,
   "fetch_failures": 2,
   "line_tolerance": 2,
   "categories": {
@@ -197,6 +197,82 @@
         "CVE-2020-7750 src/svg-renderer.js:371",
         "CVE-2020-8116 index.js:70",
         "CVE-2020-8203 lodash.js:2559"
+      ]
+    },
+    "pathtrav": {
+      "tp": 7,
+      "fp": 244,
+      "fn": 25,
+      "hits": [
+        "CVE-2018-1002203 lib/extract.js:21",
+        "CVE-2018-11798 lib/nodejs/lib/thrift/web_server.js:419",
+        "CVE-2018-16485 lib/index.js:11",
+        "CVE-2018-20835 index.js:266",
+        "CVE-2019-10767 lib/objects/objectsInMemFileDB.js:145",
+        "CVE-2019-5479 index.js:172",
+        "CVE-2020-7763 lib/conversion.js:14"
+      ],
+      "misses": [
+        "CVE-2017-16029 lib/routes/statics.js:31",
+        "CVE-2017-16083 lib/router.js:734",
+        "CVE-2017-16084 server.js:88",
+        "CVE-2017-16107 server.js:9",
+        "CVE-2017-16877 server/render.js:218",
+        "CVE-2018-1002204 util/utils.js:109",
+        "CVE-2018-16478 simplehttpserver/simplehttpserver.js:76",
+        "CVE-2018-16479 bin/http-live:94",
+        "CVE-2018-20834 lib/unpack.js:403",
+        "CVE-2018-3712 lib/server.js:88",
+        "CVE-2018-3713 angular-http-server.js:76",
+        "CVE-2018-3718 lib/server.js:98",
+        "CVE-2018-3725 bin/hekto.js:116",
+        "CVE-2018-3725 bin/hekto.js:138",
+        "CVE-2018-3725 bin/hekto.js:141",
+        "CVE-2018-3725 bin/hekto.js:152",
+        "CVE-2018-3725 bin/hekto.js:194",
+        "CVE-2018-3731 bin/public:78",
+        "CVE-2018-3733 crud-file-server.js:66",
+        "CVE-2018-6184 server/render.js:230",
+        "CVE-2019-10765 lib/web.js:363",
+        "CVE-2019-13173 lib/writer.js:151",
+        "CVE-2019-5444 source/server.js:26",
+        "CVE-2019-5484 lib/util/extract.js:65",
+        "CVE-2020-12265 index.js:50"
+      ]
+    },
+    "ssrf": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 3,
+      "hits": [],
+      "misses": [
+        "CVE-2017-18354 src/renderer.js:75",
+        "CVE-2020-15152 src/connector/active.js:32",
+        "CVE-2020-8205 packages/@uppy/companion/src/server/controllers/url.js:120"
+      ]
+    },
+    "deserial": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "hits": [],
+      "misses": [
+        "CVE-2020-7660 index.js:10"
+      ]
+    },
+    "openredir": {
+      "tp": 0,
+      "fp": 4,
+      "fn": 7,
+      "hits": [],
+      "misses": [
+        "CVE-2018-1000086 src/pym.js:569",
+        "CVE-2019-18350 src/models/login.ts:56",
+        "CVE-2020-14000 src/extension-support/extension-worker.js:20",
+        "CVE-2017-16224 st.js:351",
+        "CVE-2018-3743 bin/hekto.js:187",
+        "CVE-2018-6333 pkg/nuclide-hhvm/lib/main.js:129",
+        "CVE-2020-8135 packages/@uppy/companion/src/server/helpers/utils.js:73"
       ]
     }
   }
