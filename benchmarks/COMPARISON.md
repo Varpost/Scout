@@ -38,13 +38,26 @@ operations, so they joined the path sinks. A one-level nested-paren capture also
 lets `fs.readFile(path.join(root, req.query.f))` taint through the wrapper.
 Native now exceeds even the semgrep pass on this class (46.9% vs 21.9%).
 
-The other three stay at **0%** and we leave them there honestly: SSRF's CVEs use
-sinks like `Page.navigate` (a 3-CVE sample not worth a puppeteer-specific rule),
-and open-redirect/deserialization reach their sinks across function boundaries —
-that's the cross-function-taint lever, not a pattern gap. Weak randomness
-(CWE-330) has no CVE in the OpenSSF set, so it stays unit-test-only. Blending
-these into an "overall" number would understate the mature injection detection,
-so they stay in a separate table.
+The other three stay at **0%** and we leave them there honestly. Reading the
+11 CVE flows, the blocker is *sink/source breadth*, not function boundaries:
+open redirect arrives as `res.setHeader('Location', req.sturl)` or Koa's
+`this.redirect(this.request.url)` (neither the header sink nor those sources are
+recognized); SSRF arrives as a bare `request({uri: url})` where the URL rides in
+an object literal (needs object-property taint plus the bare-`request` sink).
+Moving an 11-CVE tail would take exactly the kind of source-broadening and
+object taint most likely to add false positives elsewhere — not worth it against
+this sample. Weak randomness (CWE-330) has no CVE in the OpenSSF set, so it stays
+unit-test-only. Blending these into an "overall" number would understate the
+mature injection detection, so they stay in a separate table.
+
+**v0.1.15 adds cross-function taint for Python** (intra-file): a tainted argument
+to a local helper taints that helper's parameter, so a route handler passing
+`request.args` into a service function that calls `os.system` is tracked to the
+sink. The OpenSSF corpus is all JS, so this does not move any number above — it
+is a real-world capability for layered Python apps, proven by unit tests. Its one
+visible mark on this JS corpus is +1 native path-traversal FP: a genuine
+`open(sys.argv[1])`-via-parameter flow in a corpus repo's Python helper script,
+counted FP only because it is unlabeled.
 
 Two deliberate levers moved v0.1.10 → v0.1.11, both first-principles rather
 than corpus-tuned:
