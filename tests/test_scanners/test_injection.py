@@ -113,6 +113,31 @@ def test_spawn_shell_true_is_detected():
     assert any("spawn" in f.title for f in findings)
 
 
+def test_member_exec_with_array_join_command_is_detected():
+    # Regression: the command is built as [a, b, c].join(' ') — the array's
+    # internal commas must not cut the first-arg capture short (cp.exec form
+    # with a callback second arg). Missed CVE-2020-4059 git.js:49.
+    scanner = InjectionScanner()
+    content = "cp.exec([gitApp, 'commit', '-m', msg].join(' '), gitExtra, done);\n"
+    findings = scanner.scan_file(Path("git.js"), content)
+    assert any("exec" in f.title.lower() for f in findings), [f.title for f in findings]
+
+
+def test_member_exec_with_wrapped_call_command_is_detected():
+    scanner = InjectionScanner()
+    content = "cp.exec(buildCmd(host, port), function (err) {});\n"
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert any("exec" in f.title.lower() for f in findings)
+
+
+def test_regexp_exec_still_not_flagged_after_nested_arg_fix():
+    # The nested-delimiter arg matcher must not start matching regexp.exec().
+    scanner = InjectionScanner()
+    content = "const m = pattern.exec(input);\nconst n = re.exec(s.slice(0, 3));\n"
+    findings = scanner.scan_file(Path("app.js"), content)
+    assert not any("exec" in f.title.lower() for f in findings), [f.title for f in findings]
+
+
 # --- AST pass (Python files) ---
 
 

@@ -137,7 +137,12 @@ CMD_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
         # child_process, not a regex test. See OWASP Command Injection.
         re.compile(
             r"""(?<![\w.])(?:[A-Za-z_$][\w$]*\s*\.\s*)?exec(?:Sync)?\s*\("""
-            r"""\s*(?!['"][^'"\n]*['"]\s*,)[^,;\n]+,\s*(?:function\b|\([^)\n]*\)\s*=>|\{|[A-Za-z_$])"""
+            # First arg spans one level of (...) and [...] so a command built as
+            # [a, b, c].join(' ') or buildCmd(x, y) — whose internal commas would
+            # otherwise cut the match — is still captured up to the real 2nd-arg
+            # comma. Each group is un-nested ([^)\n]* / [^\]\n]*), so it stays linear.
+            r"""\s*(?!['"][^'"\n]*['"]\s*,)(?:[^,;()\[\]\n]|\([^)\n]*\)|\[[^\]\n]*\])+"""
+            r""",\s*(?:function\b|\([^)\n]*\)\s*=>|\{|[A-Za-z_$])"""
         ),
         "child_process exec() with a dynamic command and a callback/options argument. If any "
         "part of the command string comes from user input, attackers can run arbitrary shell "
