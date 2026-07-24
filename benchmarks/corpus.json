@@ -233,6 +233,7 @@
       "repository": "https://github.com/nprapps/pym.js.git",
       "commit": "4b9016c30a930608e68dcd831176e1d089fab55b",
       "categories": [
+        "openredir",
         "xss"
       ],
       "weaknesses": [
@@ -1109,6 +1110,7 @@
       "repository": "https://github.com/ant-design/ant-design-pro.git",
       "commit": "0ad1fb3109f9864fc728bd7c6ebcb99e248d9f25",
       "categories": [
+        "openredir",
         "xss"
       ],
       "weaknesses": [
@@ -1222,6 +1224,7 @@
       "repository": "https://github.com/LLK/scratch-vm.git",
       "commit": "b67ba75d8b1df4268a9d6727bbc4f32f153c9131",
       "categories": [
+        "openredir",
         "xss"
       ],
       "weaknesses": [
@@ -1537,6 +1540,526 @@
         {
           "file": "lodash.js",
           "line": 2559
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16029",
+      "repository": "https://github.com/henrytseng/hostr.git",
+      "commit": "5827ba48fd4a08c26604b97798c57d45fe1cd51e",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/routes/statics.js",
+          "line": 31
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16083",
+      "repository": "https://github.com/sandy98/node-simple-router.git",
+      "commit": "91da4299aee0086cc1e0cc837763578af6f82cea",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/router.js",
+          "line": 734
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16084",
+      "repository": "https://github.com/KoryNunn/list-n-stream.git",
+      "commit": "87de3f13465e9d4d21eb75be8143cdc4085a19b3",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "server.js",
+          "line": 88
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16107",
+      "repository": "https://github.com/Eeems/PooledWebSocket.git",
+      "commit": "d51217a285c1dc5851743d0756cc43c35d12737c",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "server.js",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16224",
+      "repository": "https://github.com/isaacs/st.git",
+      "commit": "ae7b6768c1d91dd48b368b2b921193fc2b36cff1",
+      "categories": [
+        "openredir"
+      ],
+      "weaknesses": [
+        {
+          "file": "st.js",
+          "line": 351
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-16877",
+      "repository": "https://github.com/zeit/next.js.git",
+      "commit": "442c611d4956496afc8f32c3bb881f2d37e63960",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "server/render.js",
+          "line": 218
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2017-18354",
+      "repository": "https://github.com/GoogleChrome/rendertron.git",
+      "commit": "16ade3208c80c3de8f8e36a05ad8242af1eeb7f4",
+      "categories": [
+        "ssrf"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/renderer.js",
+          "line": 75
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-1002203",
+      "repository": "https://github.com/ZJONSSON/node-unzipper.git",
+      "commit": "48bd69eaa3cbd30558bd218327ac103d1457e919",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/extract.js",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-1002204",
+      "repository": "https://github.com/cthackers/adm-zip.git",
+      "commit": "e116bc18df51e4e50c493cede82ae7696954b511",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "util/utils.js",
+          "line": 109
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-11798",
+      "repository": "https://github.com/apache/thrift.git",
+      "commit": "d566da7739c9aae63fe7fc9d267887fa73e5dda7",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/nodejs/lib/thrift/web_server.js",
+          "line": 419
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16478",
+      "repository": "https://github.com/tikonen/blog.git",
+      "commit": "08ab167d21ca55e6bb5599fdd599e888c8cc667c",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "simplehttpserver/simplehttpserver.js",
+          "line": 76
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16479",
+      "repository": "https://github.com/prahladyeri/http-live-simulator.git",
+      "commit": "8e85a1be562248d0d616c0e5092a3d71bbf5fe5f",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "bin/http-live",
+          "line": 94
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-16485",
+      "repository": "https://github.com/nunnly/m-server.git",
+      "commit": "3fcc6771fb14e8452ca80364f5900af362df316f",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/index.js",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-20834",
+      "repository": "https://github.com/npm/node-tar.git",
+      "commit": "58a8d437abccd6dc884541b8bf6554901ec592cc",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/unpack.js",
+          "line": 403
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-20835",
+      "repository": "https://github.com/mafintosh/tar-fs.git",
+      "commit": "7b4ab17e950832cfd3e67421e48898fdb50318fc",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 266
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3712",
+      "repository": "https://github.com/zeit/serve.git",
+      "commit": "ce95709c74873040308c88771821bfdaa569be52",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/server.js",
+          "line": 88
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3713",
+      "repository": "https://github.com/simonh1000/angular-http-server.git",
+      "commit": "c1b677f493cc97cb63bbda1887d2a9d1b2bd4732",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "angular-http-server.js",
+          "line": 76
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3718",
+      "repository": "https://github.com/zeit/serve.git",
+      "commit": "2fece040fb87fed1afcb41c58afd8824482ee15e",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/server.js",
+          "line": 98
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3725",
+      "repository": "https://github.com/herber/hekto.git",
+      "commit": "a3d942d8398a0907d0bbf2682f2fbd54ce73764e",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "bin/hekto.js",
+          "line": 116
+        },
+        {
+          "file": "bin/hekto.js",
+          "line": 138
+        },
+        {
+          "file": "bin/hekto.js",
+          "line": 141
+        },
+        {
+          "file": "bin/hekto.js",
+          "line": 152
+        },
+        {
+          "file": "bin/hekto.js",
+          "line": 194
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3731",
+      "repository": "https://github.com/tnantoka/public.git",
+      "commit": "c5c14107c00eb37c677eabcc5566938a0dee685c",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "bin/public",
+          "line": 78
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3733",
+      "repository": "https://github.com/omphalos/crud-file-server.git",
+      "commit": "833e7fcc2bc8406b9c76836a51ae173f50c56bf0",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "crud-file-server.js",
+          "line": 66
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-3743",
+      "repository": "https://github.com/herber/hekto.git",
+      "commit": "c33aaae609c7236a7cb555a62d8b99dfbcb5da09",
+      "categories": [
+        "openredir"
+      ],
+      "weaknesses": [
+        {
+          "file": "bin/hekto.js",
+          "line": 187
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-6184",
+      "repository": "https://github.com/zeit/next.js.git",
+      "commit": "b5739d53614de76b937435ae1ef7867d40c9dac3",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "server/render.js",
+          "line": 230
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2018-6333",
+      "repository": "https://github.com/facebookarchive/nuclide.git",
+      "commit": "ee8e058c8b90cb008f3ee151c52aec40cad1174a",
+      "categories": [
+        "openredir"
+      ],
+      "weaknesses": [
+        {
+          "file": "pkg/nuclide-hhvm/lib/main.js",
+          "line": 129
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10765",
+      "repository": "https://github.com/ioBroker/ioBroker.admin.git",
+      "commit": "9872f452fce58031e8e623d37b7d396386baa9b7",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/web.js",
+          "line": 363
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-10767",
+      "repository": "https://github.com/ioBroker/ioBroker.js-controller.git",
+      "commit": "fbdbfbdb766490db65cde0b0ca5dd46221c5a912",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/objects/objectsInMemFileDB.js",
+          "line": 145
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-13173",
+      "repository": "https://github.com/npm/fstream.git",
+      "commit": "1e4527ffe8688d4f5325283d7cf2cf2d61f14c6b",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/writer.js",
+          "line": 151
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-5444",
+      "repository": "https://github.com/ChristoPy/serve-here.js.git",
+      "commit": "ad077637bf7a9fe0dee3262f011aed19a45ce92c",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "source/server.js",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-5479",
+      "repository": "https://github.com/larvit/larvitbase-api.git",
+      "commit": "9c274f96e113ff9479fce7a6da8bc5cefb5f5d78",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 172
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2019-5484",
+      "repository": "https://github.com/bower/bower.git",
+      "commit": "4f68fc7daa4d6f0a3dfd0da2afdbb8f0b87558af",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/util/extract.js",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-12265",
+      "repository": "https://github.com/kevva/decompress.git",
+      "commit": "74a462a139cc2561b6695e696266c8dc31562d3d",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 50
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-15152",
+      "repository": "https://github.com/autovance/ftp-srv.git",
+      "commit": "296573ae017d137a0b4268a96ea45b753bd66305",
+      "categories": [
+        "ssrf"
+      ],
+      "weaknesses": [
+        {
+          "file": "src/connector/active.js",
+          "line": 32
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7660",
+      "repository": "https://github.com/yahoo/serialize-javascript.git",
+      "commit": "1ac487ed828762eb490ad87022b6b354e0772284",
+      "categories": [
+        "deserial"
+      ],
+      "weaknesses": [
+        {
+          "file": "index.js",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-7763",
+      "repository": "https://github.com/pofider/phantom-html-to-pdf.git",
+      "commit": "c1c4d4df05f3d019e74ed209bae345d2c38d8962",
+      "categories": [
+        "pathtrav"
+      ],
+      "weaknesses": [
+        {
+          "file": "lib/conversion.js",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-8135",
+      "repository": "https://github.com/transloadit/uppy.git",
+      "commit": "4aeef4dac0490ebb1d1fccd5582ba42c6c0fb87d",
+      "categories": [
+        "openredir"
+      ],
+      "weaknesses": [
+        {
+          "file": "packages/@uppy/companion/src/server/helpers/utils.js",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "cve": "CVE-2020-8205",
+      "repository": "https://github.com/transloadit/uppy.git",
+      "commit": "ab88612dff3ce24b001acb3b626516f0e2f7fd0c",
+      "categories": [
+        "ssrf"
+      ],
+      "weaknesses": [
+        {
+          "file": "packages/@uppy/companion/src/server/controllers/url.js",
+          "line": 120
         }
       ]
     }

@@ -6,7 +6,7 @@
 (Apache-2.0): real published CVEs in real open-source JS/TS projects, each with
 the vulnerable commit and the labeled file:line of the weakness.
 
-`corpus.json` pins the subset in **Scout's claim area** — 106 CVEs whose CWEs
+`corpus.json` pins the subset in **Scout's claim area** — 142 CVEs whose CWEs
 intersect what Scout's injection scanner actually attempts:
 
 | Category | CWEs | CVEs |
@@ -15,8 +15,23 @@ intersect what Scout's injection scanner actually attempts:
 | `cmdi` | CWE-077, CWE-078 | 48 |
 | `codei` | CWE-094, CWE-095 | 31 |
 | `sqli` | CWE-089 | 4 |
+| `pathtrav` | CWE-022, CWE-023, CWE-036 | 28 |
+| `openredir` | CWE-601 | 7 |
+| `ssrf` | CWE-918 | 3 |
+| `deserial` | CWE-502 | 1 |
 
 (A CVE can carry several CWEs, so columns overlap.)
+
+The bottom four categories were added once Scout gained detectors for them
+(path traversal + SSRF in v0.1.12, deserialization + open redirect in v0.1.13).
+They are **early-stage and measured honestly**: at v0.1.13 native recall on all
+four is **0%** — real-world CVEs in these classes reach the sink through
+sources Scout's intra-file taint does not yet recognize (`req.url`), sinks it
+does not yet list (`fs.stat`, `Page.navigate`), or flows that cross a function
+boundary. The textbook shapes these detectors *do* catch (`fs.readFile(req.query.f)`)
+are covered by unit tests. Cross-function taint (planned) is the lever; the
+baseline is committed first so the lift is auditable. No weak-randomness
+(CWE-330) CVEs exist in the OpenSSF set, so that class stays unit-test-only.
 
 ## Procedure
 
