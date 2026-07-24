@@ -15,8 +15,18 @@ the scan mode:
 | ---- | ----------- | ---------- | ------------ | ----------- | -------------- | ----------------- |
 | Scout native v0.1.9 | 18.8% | 20.0% | 6.5% | 0.0% | 16.5% | 1.3% |
 | Scout native v0.1.10 (JS taint pass) | 20.8% | 22.7% | 12.9% | 25.0% | 20.3% | 1.6% |
-| Scout native v0.1.11 (member-exec + bundle skip) | **39.6%** | 21.3% | 9.7% | 25.0% | **24.7%** | **2.4%** |
-| Scout `--engine semgrep` v0.1.11 | **41.7%** | 24.0% | 12.9% | 25.0% | **27.2%** | 2.6% |
+| Scout native v0.1.11 (member-exec + bundle skip) | 39.6% | 21.3% | 9.7% | 25.0% | 24.7% | 2.4% |
+| Scout native v0.1.16 (exec nested-arg fix) | **41.7%** | 21.3% | 9.7% | 25.0% | **27.4%** | **3.2%** |
+| Scout `--engine semgrep` v0.1.11 | 41.7% | 24.0% | 12.9% | 25.0% | 27.2% | 2.6% |
+
+The v0.1.16 cmdi lift (39.6% → **41.7%**, and precision 2.4% → 3.2%) came from a
+regex **correctness** fix, not broadening: the member-`exec()` matcher captured
+its first argument with `[^,;\n]+`, which stopped at the first comma — so a
+command built as `[a, b].join(' ')` or `buildCmd(x, y)` was cut short and missed,
+*and* a `regexp.exec(fn(a, b))` was mis-read as `exec(cmd, callback)` and wrongly
+flagged as command injection. Spanning one level of `(...)`/`[...]` fixes both
+directions at once: it added the real `cp.exec([...].join(' '), cb)` sinks and
+removed a class of `RegExp.exec` false positives. Recall and precision up together.
 
 The injection rows above are unchanged across v0.1.12–v0.1.13 (verified: identical
 TP/FP/FN). Those releases added five **new** vulnerability classes — path
@@ -93,12 +103,13 @@ our matcher — treat as indicative, not directly comparable):
 | CodeQL (full semantic analysis) | 40% | 44% | 25% | 35% |
 | ESLint (security plugins) | 55% | 40% | 0% | 78% |
 | VulnJS4Line (research ML model) | 70% | 37% | 25% | 58% |
-| **Scout native v0.1.11** (our matcher, see caveat) | **39.6%** | 21.3% | **25.0%** | 9.7% |
+| **Scout native v0.1.16** (our matcher, see caveat) | **41.7%** | 21.3% | **25.0%** | 9.7% |
 
 Worth stating plainly on two categories: Scout's SQL/NoSQL injection rate
 now equals CodeQL's published one on this corpus (25%) and beats ESLint's
-0%; and command injection (39.6%) is now essentially level with CodeQL's
-published 40% — both from generic, documented detection, not corpus tuning.
+0%; and command injection (**41.7%**) now edges past CodeQL's published 40% —
+both from generic, documented detection, not corpus tuning (the cmdi number
+comes from a regex-correctness fix that also *removed* false positives).
 
 The same paper's summary is the context every row above sits in: on real-world
 CVEs, *"even the highest performing [tool] does not reach 50% detection
