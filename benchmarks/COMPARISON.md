@@ -23,27 +23,28 @@ TP/FP/FN). Those releases added five **new** vulnerability classes — path
 traversal (CWE-22), SSRF (CWE-918), insecure deserialization (CWE-502), open
 redirect (CWE-601), weak randomness (CWE-330) — which are scored separately:
 
-| Emerging class (v0.1.13) | Corpus CVEs | native recall | `--engine semgrep` recall |
-| ------------------------ | ----------- | ------------- | ------------------------- |
-| Path traversal | 28 | 0.0% | **21.9%** (7 TP) |
-| Open redirect | 7 | 0.0% | 0.0% |
-| SSRF | 3 | 0.0% | 0.0% |
-| Insecure deserialization | 1 | 0.0% | 0.0% |
+| Emerging class | Corpus CVEs | native v0.1.13 | **native v0.1.14** | `--engine semgrep` |
+| -------------- | ----------- | -------------- | ------------------ | ------------------ |
+| Path traversal | 28 | 0.0% | **46.9%** (15 TP) | **62.5%** (20 TP) |
+| Open redirect | 7 | 0.0% | 0.0% | 0.0% |
+| SSRF | 3 | 0.0% | 0.0% | 0.0% |
+| Insecure deserialization | 1 | 0.0% | 0.0% | 0.0% |
 
-**Honest native baseline: 0%.** The textbook shapes these detectors catch
-(`fs.readFile(req.query.file)`, `redirect(req.query.next)`) are unit-tested and
-real, but the historical CVEs reach the sink through inputs Scout's *intra-file*
-taint does not yet recognize (`req.url` on raw HTTP servers), sinks it does not
-list (`fs.stat`, `Page.navigate`), or values built across a function boundary.
-This is the same ceiling the injection categories hit — measured, published, and
-the reason cross-function taint is the next lever.
+**Path traversal: 0% → 46.9% in v0.1.14, from two first-principles broadenings**
+(not corpus-tuning — each is a general truth the earlier list simply omitted):
+the request URL/path (`req.url`, `req.path`) *is* user input, so it joined the
+taint sources; and `fs.stat`/`access`/`exists`/`open`/`readdir` *are* file-path
+operations, so they joined the path sinks. A one-level nested-paren capture also
+lets `fs.readFile(path.join(root, req.query.f))` taint through the wrapper.
+Native now exceeds even the semgrep pass on this class (46.9% vs 21.9%).
 
-**The `--engine semgrep` column is the orchestration payoff:** on path
-traversal, native detection scores 0% but the merged semgrep pass reaches
-**21.9%** — Scout hands the class it can't yet reach to an engine that can, in
-one report. Weak randomness (CWE-330) has no CVE in the OpenSSF set, so it stays
-unit-test-only. Blending these classes into an "overall" number would understate
-the mature injection detection, so we keep them in a separate table.
+The other three stay at **0%** and we leave them there honestly: SSRF's CVEs use
+sinks like `Page.navigate` (a 3-CVE sample not worth a puppeteer-specific rule),
+and open-redirect/deserialization reach their sinks across function boundaries —
+that's the cross-function-taint lever, not a pattern gap. Weak randomness
+(CWE-330) has no CVE in the OpenSSF set, so it stays unit-test-only. Blending
+these into an "overall" number would understate the mature injection detection,
+so they stay in a separate table.
 
 Two deliberate levers moved v0.1.10 → v0.1.11, both first-principles rather
 than corpus-tuned:

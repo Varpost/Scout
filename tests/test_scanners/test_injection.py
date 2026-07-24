@@ -604,3 +604,36 @@ def test_weak_random_without_security_keyword_is_not_flagged():
 # (The property "E1 titles are not scored by the injection benchmark" is proven
 # empirically by the benchmark run showing identical TP/FP/FN, not by a unit
 # test — importing benchmarks/ here would couple the suite to a non-package.)
+
+
+# --- E2.5: broadened JS taint sources (req.url) + path sinks + wrapped args ---
+
+
+def test_js_req_url_is_a_taint_source():
+    findings = _scan_js("const p = req.url;\nfs.readFile(p, cb);\n")
+    assert [(f.title, f.reachable) for f in findings] == [("Path traversal", True)]
+
+
+def test_js_fs_stat_access_exists_are_path_sinks():
+    for sink in ("stat", "access", "exists", "createReadStream", "realpath"):
+        content = f"fs.{sink}(req.params.file);\n"
+        assert any(f.title == "Path traversal" for f in _scan_js(content)), sink
+
+
+def test_js_path_join_wrapper_does_not_cut_the_taint():
+    # The comma inside path.join(root, x) must not truncate arg capture.
+    findings = _scan_js("fs.readFile(path.join(root, req.query.name), cb);\n")
+    assert any(f.title == "Path traversal" for f in findings)
+
+
+def test_js_path_sink_with_constant_join_is_silent():
+    assert _scan_js('fs.readFile(path.join(__dirname, "index.html"), cb);\n') == []
+
+
+def test_js_ssrf_wrapped_url_is_caught():
+    findings = _scan_js("const u = req.query.target;\naxios.get(buildUrl(u));\n")
+    assert any("SSRF" in f.title for f in findings)
+
+
+def test_js_req_path_property_source():
+    assert any(f.title == "Path traversal" for f in _scan_js("fs.createReadStream(req.path);\n"))

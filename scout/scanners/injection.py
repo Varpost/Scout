@@ -247,9 +247,10 @@ XSS_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
 _JS_TAINT_SUFFIXES = frozenset({".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"})
 
 # Untrusted-input reads: the OWASP DOM-XSS source list plus the standard
-# Node/Express/Koa request surfaces.
+# Node/Express/Koa request surfaces. The request URL/path itself is user input
+# (raw http servers route on req.url), so it belongs here alongside the body.
 _JS_SOURCE = re.compile(
-    r"""\b(?:req|request|ctx)\.(?:body|query|params|headers|cookies)\b"""
+    r"""\b(?:req|request|ctx)\.(?:body|query|params|headers|cookies|url|originalUrl|baseUrl|path|querystring)\b"""
     r"""|(?:\bwindow\.)?\blocation\.(?:hash|search|href|pathname)\b"""
     r"""|\bdocument\.(?:URL|documentURI|referrer|cookie)\b"""
     r"""|\bprocess\.(?:argv|env)\b|\bwindow\.name\b"""
@@ -362,18 +363,30 @@ _WEAK_RANDOM_DESCRIPTION = (
     "`crypto.randomBytes`/`crypto.randomUUID`."
 )
 
-# File-path sinks: fs reads/writes and Express file responses. Taint-gated, so
-# a plain fs.readFileSync("config.json") never fires.
+# The sink argument may wrap the tainted value in one call — fs.readFile(
+# path.join(root, req.query.f)). This sub-pattern captures a first argument
+# that contains at most one level of nested parens, so the comma *inside*
+# path.join(...) doesn't cut the capture short (a top-level comma still does).
+_ARG1 = r"""(?P<arg>(?:[^,()\n]|\([^)\n]*\))+)"""
+_ARG2 = r"""(?P<arg2>(?:[^,()\n]|\([^)\n]*\))+)"""
+
+# File-path sinks: fs reads/writes/metadata and Express file responses. All are
+# path operations — a user-controlled path is traversal regardless of the verb.
+# Taint-gated, so a plain fs.readFileSync("config.json") never fires.
 _JS_PATH_SINK = re.compile(
-    r"""\.(?:readFile|readFileSync|createReadStream|writeFile|writeFileSync|appendFile|unlink|sendFile|download)"""
-    r"""\s*\(\s*(?P<arg>[^,)\n]+)"""
+    r"""\.(?:readFile|readFileSync|createReadStream|createWriteStream|writeFile|writeFileSync|appendFile|appendFileSync"""
+    r"""|unlink|unlinkSync|stat|statSync|lstat|lstatSync|access|accessSync|exists|existsSync|open|openSync"""
+    r"""|readdir|readdirSync|realpath|realpathSync|copyFile|copyFileSync|rename|renameSync|rmdir|rmdirSync|mkdir|truncate"""
+    r"""|sendFile|download)"""
+    r"""\s*\(\s*""" + _ARG1
 )
 # HTTP client sinks: bare fetch/axios/got/superagent, or a .get/.post/... on a
 # known client receiver (never a generic Map.get — the receiver list gates it).
 _JS_SSRF_SINK = re.compile(
-    r"""(?<![\w.$])(?:fetch|axios|got|superagent)\s*\(\s*(?P<arg>[^,)\n]+)"""
-    r"""|\b(?:axios|http|https|got|request|superagent|fetch)"""
-    r"""\.(?:get|post|put|patch|del|delete|head|request)\s*\(\s*(?P<arg2>[^,)\n]+)"""
+    r"""(?<![\w.$])(?:fetch|axios|got|superagent)\s*\(\s*"""
+    + _ARG1
+    + r"""|\b(?:axios|http|https|got|request|superagent|fetch)"""
+    r"""\.(?:get|post|put|patch|del|delete|head|request)\s*\(\s*""" + _ARG2
 )
 # node-serialize unserialize() — the classic Node RCE deserialization sink.
 # \b (not (?<![\w.])) so the common dotted form serialize.unserialize(x) matches.

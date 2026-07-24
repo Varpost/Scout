@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@v0.1.13
+      - uses: Varpost/Scout@v0.1.14
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -110,7 +110,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.13        # use the latest tag
+    rev: v0.1.14        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -231,16 +231,16 @@ Deep analysis — **injection** (SQL/command/XSS) and **security headers** — t
 
 Scout's injection scanner is measured against 104 real CVEs from the [OpenSSF CVE Benchmark](https://github.com/ossf-cve-benchmark/ossf-cve-benchmark) — real vulnerable commits in real JS/TS projects, no synthetic test cases. Full methodology, caveats, and reproduction steps live in [benchmarks/](benchmarks/); results are versioned per release, and this README only ever cites numbers present in a committed results file.
 
-Honest reading of the [v0.1.13 results](benchmarks/results/0.1.13/summary-native.md): overall recall is **24.7%** at **2.4%** precision — both up release over release (16.5% / 1.3% in v0.1.9). Command injection is the standout at **39.6%** recall (essentially level with CodeQL's published 40% on this corpus), from recognizing `child_process.exec(cmd, callback)` member calls; SQL/NoSQL injection holds at 25% (matching CodeQL) via the JS taint pass. Precision rose because the scanner now skips minified/bundled files — a vuln in a generated bundle is the dependency scanner's job. Adding `--engine semgrep` lifts overall recall to [27.2%](benchmarks/results/0.1.13/summary-native-semgrep.md) (command injection to 41.7%). The false-positive counts are an upper bound by benchmark convention — every unlabeled real `exec()`/sink call counts against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+Honest reading of the [v0.1.13 results](benchmarks/results/0.1.14/summary-native.md): overall recall is **24.7%** at **2.4%** precision — both up release over release (16.5% / 1.3% in v0.1.9). Command injection is the standout at **39.6%** recall (essentially level with CodeQL's published 40% on this corpus), from recognizing `child_process.exec(cmd, callback)` member calls; SQL/NoSQL injection holds at 25% (matching CodeQL) via the JS taint pass. Precision rose because the scanner now skips minified/bundled files — a vuln in a generated bundle is the dependency scanner's job. Adding `--engine semgrep` lifts overall recall to [27.2%](benchmarks/results/0.1.14/summary-native-semgrep.md) (command injection to 41.7%). The false-positive counts are an upper bound by benchmark convention — every unlabeled real `exec()`/sink call counts against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
 
-The path-traversal + SSRF (v0.1.12) and deserialization + open-redirect + weak-randomness (v0.1.13) detectors are new vulnerability *classes* (CWE-22/918/502/601/330). The injection figures above are unchanged by them (verified: identical TP/FP/FN). These classes are now scored separately against 39 added CVEs, and the honest native baseline is **0% recall** — the textbook shapes they catch (`fs.readFile(req.query.file)`) are unit-tested and real, but historical CVEs reach the sink through inputs the *intra-file* taint doesn't yet recognize (`req.url`), sinks it doesn't list (`fs.stat`), or cross-function flows. Cross-function taint is the lever; the baseline is published first so the lift is auditable. See [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+The path-traversal + SSRF (v0.1.12) and deserialization + open-redirect + weak-randomness (v0.1.13) detectors are new vulnerability *classes* (CWE-22/918/502/601/330). The injection figures above are unchanged by them (verified: identical TP/FP/FN). These classes are scored separately against 39 added CVEs. Path traversal went from a 0% baseline (v0.1.13) to **46.9% recall** (v0.1.14) after two first-principles broadenings — the request URL/path (`req.url`) joined the taint sources, and `fs.stat`/`access`/`exists` joined the file-path sinks — now ahead of even the semgrep pass on this class. SSRF, open redirect, and deserialization stay at an honest 0%: their CVEs reach the sink across function boundaries (the cross-function-taint lever) or via sinks too niche to chase on a 1–3-CVE sample. See [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
 
 ## Example Output
 
 ```
 $ scout scan ./my-app
 
-Scout v0.1.13 scanning: ./my-app
+Scout v0.1.14 scanning: ./my-app
 
   Scanning 47 files...
 
