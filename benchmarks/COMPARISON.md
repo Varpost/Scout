@@ -18,10 +18,32 @@ the scan mode:
 | Scout native v0.1.11 (member-exec + bundle skip) | **39.6%** | 21.3% | 9.7% | 25.0% | **24.7%** | **2.4%** |
 | Scout `--engine semgrep` v0.1.11 | **41.7%** | 24.0% | 12.9% | 25.0% | **27.2%** | 2.6% |
 
-v0.1.12 adds **path traversal (CWE-22)** and **SSRF (CWE-918)** detection —
-new vulnerability classes this injection-only corpus does not score, so the
-rows above are unchanged by them (verified: identical TP/FP/FN). They are
-taint-gated, adding real-world coverage without touching these numbers.
+The injection rows above are unchanged across v0.1.12–v0.1.13 (verified: identical
+TP/FP/FN). Those releases added five **new** vulnerability classes — path
+traversal (CWE-22), SSRF (CWE-918), insecure deserialization (CWE-502), open
+redirect (CWE-601), weak randomness (CWE-330) — which are scored separately:
+
+| Emerging class (v0.1.13) | Corpus CVEs | native recall | `--engine semgrep` recall |
+| ------------------------ | ----------- | ------------- | ------------------------- |
+| Path traversal | 28 | 0.0% | **21.9%** (7 TP) |
+| Open redirect | 7 | 0.0% | 0.0% |
+| SSRF | 3 | 0.0% | 0.0% |
+| Insecure deserialization | 1 | 0.0% | 0.0% |
+
+**Honest native baseline: 0%.** The textbook shapes these detectors catch
+(`fs.readFile(req.query.file)`, `redirect(req.query.next)`) are unit-tested and
+real, but the historical CVEs reach the sink through inputs Scout's *intra-file*
+taint does not yet recognize (`req.url` on raw HTTP servers), sinks it does not
+list (`fs.stat`, `Page.navigate`), or values built across a function boundary.
+This is the same ceiling the injection categories hit — measured, published, and
+the reason cross-function taint is the next lever.
+
+**The `--engine semgrep` column is the orchestration payoff:** on path
+traversal, native detection scores 0% but the merged semgrep pass reaches
+**21.9%** — Scout hands the class it can't yet reach to an engine that can, in
+one report. Weak randomness (CWE-330) has no CVE in the OpenSSF set, so it stays
+unit-test-only. Blending these classes into an "overall" number would understate
+the mature injection detection, so we keep them in a separate table.
 
 Two deliberate levers moved v0.1.10 → v0.1.11, both first-principles rather
 than corpus-tuned:

@@ -76,6 +76,11 @@ CATEGORY_TITLES = {
         "jQuery .html() with dynamic content",
         "Unescaped template output",
     },
+    # Classes added post-injection (D5/E1). Single-title categories, taint-gated.
+    "pathtrav": {"Path traversal"},
+    "ssrf": {"Server-side request forgery (SSRF)"},
+    "deserial": {"Insecure deserialization"},
+    "openredir": {"Open redirect"},
 }
 LINE_TOLERANCE = 2
 
@@ -150,6 +155,10 @@ _ENGINE_KEYWORDS = {
     "cmdi": ("command", "child-process", "child_process", "subprocess", "shell", "exec", "spawn", "os-system"),
     "codei": ("eval", "code-injection", "vm-runin", "function-constructor"),
     "xss": ("xss", "innerhtml", "inner-html", "dangerously", "document-write", "sanitiz", "html-inject"),
+    "pathtrav": ("path-traversal", "pathtraversal", "directory-traversal", "path-join", "traversal"),
+    "ssrf": ("ssrf", "server-side-request", "request-forgery"),
+    "deserial": ("deserial", "pickle", "unsafe-yaml", "yaml-load", "unserialize", "insecure-deser"),
+    "openredir": ("open-redirect", "open_redirect", "url-redirect", "unvalidated-redirect"),
 }
 
 
