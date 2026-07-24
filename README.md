@@ -86,7 +86,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: Varpost/Scout@v0.1.14
+      - uses: Varpost/Scout@v0.1.15
         with:
           fail-on: high            # also: path, format, upload-sarif
 ```
@@ -110,7 +110,7 @@ Catch findings before they're ever committed:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Varpost/Scout
-    rev: v0.1.14        # use the latest tag
+    rev: v0.1.15        # use the latest tag
     hooks:
       - id: scout
 ```
@@ -233,14 +233,16 @@ Scout's injection scanner is measured against 104 real CVEs from the [OpenSSF CV
 
 Honest reading of the [v0.1.13 results](benchmarks/results/0.1.14/summary-native.md): overall recall is **24.7%** at **2.4%** precision — both up release over release (16.5% / 1.3% in v0.1.9). Command injection is the standout at **39.6%** recall (essentially level with CodeQL's published 40% on this corpus), from recognizing `child_process.exec(cmd, callback)` member calls; SQL/NoSQL injection holds at 25% (matching CodeQL) via the JS taint pass. Precision rose because the scanner now skips minified/bundled files — a vuln in a generated bundle is the dependency scanner's job. Adding `--engine semgrep` lifts overall recall to [27.2%](benchmarks/results/0.1.14/summary-native-semgrep.md) (command injection to 41.7%). The false-positive counts are an upper bound by benchmark convention — every unlabeled real `exec()`/sink call counts against Scout. These numbers are published to invite fair comparison and to be improved release over release, not to impress. For how these figures sit against CodeQL, ESLint, and published research on the same corpus, see [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
 
-The path-traversal + SSRF (v0.1.12) and deserialization + open-redirect + weak-randomness (v0.1.13) detectors are new vulnerability *classes* (CWE-22/918/502/601/330). The injection figures above are unchanged by them (verified: identical TP/FP/FN). These classes are scored separately against 39 added CVEs. Path traversal went from a 0% baseline (v0.1.13) to **46.9% recall** (v0.1.14) after two first-principles broadenings — the request URL/path (`req.url`) joined the taint sources, and `fs.stat`/`access`/`exists` joined the file-path sinks — now ahead of even the semgrep pass on this class. SSRF, open redirect, and deserialization stay at an honest 0%: their CVEs reach the sink across function boundaries (the cross-function-taint lever) or via sinks too niche to chase on a 1–3-CVE sample. See [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+The path-traversal + SSRF (v0.1.12) and deserialization + open-redirect + weak-randomness (v0.1.13) detectors are new vulnerability *classes* (CWE-22/918/502/601/330). The injection figures above are unchanged by them (verified: identical TP/FP/FN). These classes are scored separately against 39 added CVEs. Path traversal went from a 0% baseline (v0.1.13) to **46.9% recall** (v0.1.14) after two first-principles broadenings — the request URL/path (`req.url`) joined the taint sources, and `fs.stat`/`access`/`exists` joined the file-path sinks — now ahead of even the semgrep pass on this class. SSRF, open redirect, and deserialization stay at an honest 0%: reading their CVE flows, the blocker is unrecognized sinks/sources (a `res.setHeader('Location', …)` redirect, a bare `request({uri})` client) and taint through object literals — not function boundaries — and chasing an 11-CVE tail with that breadth would risk more false positives than it's worth. See [benchmarks/COMPARISON.md](benchmarks/COMPARISON.md).
+
+v0.1.15 adds **cross-function taint tracking for Python** (intra-file): a tainted argument to a local helper now taints that helper's parameter, so a `request.args` value flowing through a route handler into `os.system` in a service function is tracked to the sink. This is a real-world win for layered Python apps that the JS-only OpenSSF corpus can't measure — like weak randomness, it stays proven by unit tests rather than a benchmark number.
 
 ## Example Output
 
 ```
 $ scout scan ./my-app
 
-Scout v0.1.14 scanning: ./my-app
+Scout v0.1.15 scanning: ./my-app
 
   Scanning 47 files...
 

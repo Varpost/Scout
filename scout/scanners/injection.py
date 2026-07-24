@@ -2,8 +2,11 @@
 
 Python files get an AST-based pass (stdlib ``ast``): it kills the regex
 false-positive class (constant ``shell=True`` commands, strings that merely
-look like calls) and catches multi-line calls regex can't see. Non-Python
-files — and Python that doesn't parse — keep the regex patterns.
+look like calls) and catches multi-line calls regex can't see. Its taint env
+is cross-function within the file — a tainted argument to a local helper taints
+that helper's parameter, so ``handler`` → ``run(cmd)`` → ``os.system(cmd)`` is
+tracked. Non-Python files — and Python that doesn't parse — keep the regex
+patterns (with the intra-file lexical JS taint pass below).
 """
 
 from __future__ import annotations
@@ -572,42 +575,108 @@ def _expr_has_source(expr: ast.expr) -> bool:
     return any(_is_source_node(node) for node in ast.walk(expr))
 
 
-def _build_taint_env(tree: ast.Module) -> dict[str, bool | None]:
-    """Map assigned names to their taint state across the whole file.
+# ponytail: bounded fixpoint. The env is monotonic (once True, stays True), so
+# it converges in as many passes as the deepest handler→helper→…→sink chain —
+# 1–3 in real code. The cap keeps a pathological deep-chain file from looping;
+# chains longer than this under-taint (miss), which only costs recall, never FP.
+_MAX_TAINT_PASSES = 8
 
-    True = ever assigned from an untrusted source, False = only ever assigned
-    constants, None = anything else (calls, params, conflicting assignments).
-    Single flat namespace — deliberately no scope analysis (best-effort,
-    intra-file only).
+
+def _positional_params(func: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
+    """Positional parameter names in call order (``*args``/keyword-only ignored)."""
+    return [arg.arg for arg in (*func.args.posonlyargs, *func.args.args)]
+
+
+def _calls_tainted_return(expr: ast.expr, tainted_returns: set[str]) -> bool:
+    """True when the expression calls a local function known to return tainted data."""
+    return any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in tainted_returns
+        for node in ast.walk(expr)
+    )
+
+
+def _returns_tainted(func: ast.FunctionDef | ast.AsyncFunctionDef, env: dict[str, bool | None]) -> bool:
+    """True when any ``return`` in the function yields a tainted expression."""
+    return any(
+        isinstance(node, ast.Return) and node.value is not None and _reachability([node.value], env) is True
+        for node in ast.walk(func)
+    )
+
+
+def _build_taint_env(tree: ast.Module) -> dict[str, bool | None]:
+    """Map assigned names to their taint state, propagating across function calls.
+
+    Base facts, per name: True = ever assigned from an untrusted source, False =
+    only ever assigned constants, None = anything else (unknown calls, params,
+    conflicting assignments). Cross-function propagation (the E3 depth lever)
+    adds two edges over locally defined functions: a bare call ``run(q)`` with a
+    tainted argument taints ``run``'s matching positional parameter, and an
+    assignment ``x = helper()`` from a function that can return tainted data
+    taints ``x``. Iterated to a fixpoint so chained helpers propagate.
+
+    Still one flat namespace and still intra-file (module-local functions,
+    bare-name calls — not methods, not cross-file): the same best-effort ceiling
+    as before, one notch deeper.
     """
+    functions: dict[str, ast.FunctionDef | ast.AsyncFunctionDef] = {
+        node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    params = {name: _positional_params(func) for name, func in functions.items()}
     env: dict[str, bool | None] = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign):
-            targets: list[ast.expr] = node.targets
-            value: ast.expr | None = node.value
-        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
-            targets = [node.target]
-            value = node.value
-        else:
-            continue
-        if value is None:  # bare annotation: `x: int`
-            continue
-        state: bool | None
-        if _expr_has_source(value):
-            state = True
-        elif _is_constant(value):
-            state = False
-        else:
-            state = None
-        for target in targets:
-            if not isinstance(target, ast.Name):
+    tainted_returns: set[str] = set()
+    missing = object()  # sentinel so a first-time insert counts as a change
+
+    def record(name: str, state: bool | None) -> bool:
+        old = env.get(name, missing)
+        if name not in env:
+            env[name] = state
+        elif env[name] is True or state is True:
+            env[name] = True  # once tainted, always tainted
+        elif env[name] != state:
+            env[name] = None  # conflicting evidence — undetermined
+        return env[name] is not old
+
+    for _ in range(min(len(functions) + 2, _MAX_TAINT_PASSES)):
+        changed = False
+        # 1. Assignments — a call to a tainted-returning local function is a source.
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                targets: list[ast.expr] = node.targets
+                value: ast.expr | None = node.value
+            elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+                targets = [node.target]
+                value = node.value
+            else:
                 continue
-            if target.id not in env:
-                env[target.id] = state
-            elif env[target.id] is True or state is True:
-                env[target.id] = True  # once tainted, always tainted
-            elif env[target.id] != state:
-                env[target.id] = None  # conflicting evidence — undetermined
+            if value is None:  # bare annotation: `x: int`
+                continue
+            state: bool | None
+            if _expr_has_source(value) or _calls_tainted_return(value, tainted_returns):
+                state = True
+            elif _is_constant(value):
+                state = False
+            else:
+                state = None
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    changed |= record(target.id, state)
+        # 2. Call sites — a tainted argument taints the callee's positional parameter.
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                continue
+            names = params.get(node.func.id)
+            if names is None:
+                continue
+            for index, arg in enumerate(node.args):
+                if index < len(names) and _reachability([arg], env) is True:
+                    changed |= record(names[index], True)
+        # 3. Return taint — record functions that can hand a tainted value back.
+        for name, func in functions.items():
+            if name not in tainted_returns and _returns_tainted(func, env):
+                tainted_returns.add(name)
+                changed = True
+        if not changed:
+            break
     return env
 
 

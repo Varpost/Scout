@@ -637,3 +637,40 @@ def test_js_ssrf_wrapped_url_is_caught():
 
 def test_js_req_path_property_source():
     assert any(f.title == "Path traversal" for f in _scan_js("fs.createReadStream(req.path);\n"))
+
+
+# --- E3: cross-function taint (Python), intra-file ---
+
+
+def test_py_tainted_arg_flows_into_callee_param():
+    # The accept case: handler reads a source and passes it to a helper whose
+    # parameter reaches os.system. The parameter must be seen as reachable.
+    content = 'def handler():\n    q = request.args["q"]\n    run(q)\n\ndef run(cmd):\n    os.system(cmd)\n'
+    findings = _scan_py(content)
+    system = [f for f in findings if f.title == "os.system() call"]  # scout: ignore
+    assert system and system[0].reachable is True
+
+
+def test_py_constant_arg_call_chain_stays_silent():
+    # Same shape, constant argument — the parameter must NOT become reachable.
+    content = 'def handler():\n    run("ls -la")\n\ndef run(cmd):\n    os.system(cmd)\n'  # scout: ignore
+    system = [f for f in _scan_py(content) if f.title == "os.system() call"]  # scout: ignore
+    assert system and system[0].reachable is not True
+
+
+def test_py_tainted_return_taints_assignment():
+    content = 'def get_q():\n    return request.args["q"]\n\ndef handler():\n    q = get_q()\n    os.system(q)\n'
+    system = [f for f in _scan_py(content) if f.title == "os.system() call"]  # scout: ignore
+    assert system and system[0].reachable is True
+
+
+def test_py_cross_function_chain_three_hops():
+    content = 'def a():\n    x = request.args["q"]\n    b(x)\n\ndef b(y):\n    c(y)\n\ndef c(z):\n    os.system(z)\n'
+    system = [f for f in _scan_py(content) if f.title == "os.system() call"]  # scout: ignore
+    assert system and system[0].reachable is True
+
+
+def test_py_cross_function_path_traversal_is_flagged():
+    content = 'def h():\n    p = request.args["f"]\n    serve(p)\n\ndef serve(path):\n    open(path)\n'
+    findings = _scan_py(content)
+    assert [(f.title, f.reachable) for f in findings if f.title == "Path traversal"] == [("Path traversal", True)]
